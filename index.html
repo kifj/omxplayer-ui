@@ -1,0 +1,44 @@
+<!DOCTYPE html> 
+<html> 
+<head> 
+	<title>X1 Media Player</title> 
+  <meta name="Description" content="X1 Media Player" />
+  <meta charset="utf-8">
+  <meta name="Author" content="Johannes Beck - mail@johannes-beck.name" />
+  <meta name="Robots" content="index,follow" />
+	<meta name="viewport" content="width=device-width, initial-scale=1"> 
+	<link rel="stylesheet" href="jquery.mobile-1.2.0.min.css" />
+	<script src="jquery-1.8.2.min.js"></script>
+	<script src="mediaplayer.js"></script>
+	<script src="jquery.mobile-1.2.0.min.js"></script>
+	<script src="jquery.json-2.3.min.js"></script>
+</head> 
+<body>
+	<div id="browse-page" data-role="page">
+		<script type="text/javascript">
+		$(document).bind('pageinit', function() {
+			client.initBrowserPage();
+		});
+		</script>	
+
+		<div data-role="header" data-position="fixed">
+			<a id="home" href="#" data-icon="home" data-theme="b">Servers</a>
+			<h2>X1 Media Player</h2>
+			<a id="player" href="player.html" data-icon="gear">Player</a>
+		</div>
+
+		<div data-role="content">	
+			<h1 id="title">Media Servers</h1>
+			<ul id="servers" data-role="listview" data-inset="true" data-filter="true">
+			</ul>
+		</div>
+		
+		<div data-inline="true" data-position-to="window" data-role="popup" data-history="false" data-overlay-theme="a" data-theme="e" class="ui-content" id="message-browser" data-transition="flip">
+		</div>
+		
+		<div data-role="footer" data-position="fixed">
+			<h4>&copy; 2012 <a href="http://www.x1/">X1</a></h4>
+		</div> 
+	</div>
+</body>
+</html> 
