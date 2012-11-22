@@ -88,7 +88,7 @@ Client.prototype.loadServers = function(skipHistory) {
 
 Client.prototype.browse = function(server, path, skipHistory) {
 	var caller = this;
-	$('#title').html(server);
+	$('#title').html(this.getFolder(path));
 	$.mobile.loading('show');
 	$.getJSON(this.serversUrl + '/' + path, function(data) {
 		var elem = $('#servers');
@@ -154,6 +154,16 @@ Client.prototype.getParent = function(path) {
 	pos = path.lastIndexOf("/");
 	if (pos > 0) {
 		path = path.substr(0, pos);
+	}
+	return path;
+}
+
+Client.prototype.getFolder = function(path) {
+        path = decodeURIComponent(path);
+	path = path.replace("_","/");
+	var pos = path.lastIndexOf("/");
+        if (pos >= 0 && pos < path.length - 1) {
+		path = path.substr(pos +1);
 	}
 	return path;
 }
