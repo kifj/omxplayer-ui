@@ -5,7 +5,11 @@ RewriteEngine On
 # absolute physical path to the directory that contains this htaccess file.
 #
 # RewriteBase /
+<<<<<<< HEAD
 RewriteBase /omxplayer-ui
+=======
+RewriteBase /mediaplayer
+>>>>>>> 3eeaec94ec1d87a71f979492f47b71c42190fe56
 
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteRule ^(.*)$ index.php [QSA,L]
