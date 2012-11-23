@@ -37,11 +37,10 @@ function getServers() {
 			if (!startsWith($file, '.')  && is_dir("$root_dir/$file")) {
 				if ($is_first) {
 					$is_first = false;
-					echo "\n";
 				} else {
-					echo ",\n";
+					echo ",";
 				}
-				echo "    { \"server\": " . json_encode($file) . " }";
+				echo "\n    { \"server\": " . json_encode($file) . " }";
 			}
 		}
 		closedir($handle);
@@ -55,7 +54,7 @@ function getServer($id) {
 	$app = Slim\Slim::getInstance();
 	$app->contentType('application/json');
 	$server = $id[0];
-	$path = implode("/",array_slice($id,1));
+	$path = implode("/",array_slice($id, 1));
 	if (!$path) { 
 		$path = "/"; 
 	} else { 
@@ -81,19 +80,17 @@ function getServer($id) {
 			} else if (!startsWith($file, '.')  && is_dir("$root_dir/$file")) {
 				if ($is_first) {
 					$is_first = false;
-					echo "\n";
 				} else {
-					echo ",\n";
+					echo ",";
 				}
-				echo "    { \"folder\": " . json_encode($file) . ", \"link\": \"" . encodePath("$id/$file") . "\" }";
+				echo "\n    { \"folder\": " . json_encode($file) . ", \"link\": \"" . encodePath("$id/$file") . "\" }";
 			} else if (is_file("$root_dir/$file") && in_array($extension, $extensions)) {
 				if ($is_first) {
 					$is_first = false;
-					echo "\n";
 				} else {
-					echo ",\n";
+					echo ",";
 				}
-				echo "    { \"file\": " . json_encode($file) . ", \"link\": \"" . encodePath("$id/$file") . "\", \"type\": \"" . $extension . "\" }";
+				echo "\n    { \"file\": " . json_encode($file) . ", \"link\": \"" . encodePath("$id/$file") . "\", \"type\": \"" . $extension . "\" }";
 			}
 		}
 		closedir($handle);
@@ -150,6 +147,8 @@ function controlFile($id) {
 			case "remove":
 				$result = "not implemented";
 				break;
+			case "search":
+				return search($server, "/_search/" . $control["value"]);
 			default:
 				$result = "illegal command";
 				$app->response()->status(400);
@@ -302,8 +301,8 @@ function send($command) {
 				stream_set_blocking($fifo, false);
 				fwrite($fifo, $command);
 				fclose($fifo);
-	if ($command == 'q') {
-		sleep (1);
+				if ($command == 'q') {
+					sleep (1);
 					@unlink(FIFO);
 					$out = 'The player has stopped';
 				} else {
@@ -315,6 +314,47 @@ function send($command) {
 		$out = 'The player is not running';
 	}
 	return $out;
+}
+
+function search($server, $path) {
+	$id = $server . $path;
+	$app = Slim\Slim::getInstance();
+	$app->contentType('application/json');
+	$root_dir = getRoot() . "/" . $id;
+	$extensions = array("mp3", "mpg", "avi", "mov", "mkv", "jpg", "JPG", "png", "flv", "MP3", "wav", "ogg");
+	echo "{\n  \"server\": \"$server\",\n";
+	echo "  \"path\": \"" . encodePath($path) . "\"";
+	
+	exec("ls -1 " . escapeshellarg($root_dir), $output);
+	
+	echo ",\n  \"content\": [";
+	$is_first = true;
+    foreach ($output as &$file){
+		$path_parts = pathinfo($file);
+		if (isset($path_parts['extension'])) {
+			$extension = $path_parts['extension'];
+		}
+		if (!startsWith($file, '.')  && is_dir("$root_dir/$file")) {
+			if ($is_first) {
+				$is_first = false;
+			} else {
+				echo ",";
+			}
+			echo "\n    { \"folder\": " . json_encode($file) . ", \"link\": \"" . encodePath("$id/$file") . "\" }";
+		} else if (is_file("$root_dir/$file") && in_array($extension, $extensions)) {
+			if ($is_first) {
+				$is_first = false;
+			} else {
+				echo ",";
+			}
+			echo "\n    { \"file\": " . json_encode($file) . ", \"link\": \"" . encodePath("$id/$file") . "\", \"type\": \"" . $extension . "\" }";
+		}
+	}
+	echo "\n  ],";
+	echo "\n  \"search\": false";
+	$response = $app->response();
+	$response["Cache-Control"] ="max-age=600"; 
+	echo "\n}\n";
 }
 
 ?>

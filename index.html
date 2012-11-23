@@ -20,24 +20,29 @@
 			client.initBrowserPage();
 		});
 		</script>	
-
-		<div data-role="header" data-position="fixed">
-			<a id="home" href="#" data-icon="home" data-theme="b">Servers</a>
-			<h2>X1 Media Player</h2>
-			<a id="player" href="player.html" data-icon="gear">Player</a>
+		
+		<div data-role="header" data-position="fixed" data-theme="a">
+			<a id="home" href="index.html" data-icon="home">Servers</a>
+			<h1>X1 Media Player</h1>
+			<a id="player" href="#" data-icon="gear" data-theme="b">Player</a>
 		</div>
 
 		<div data-role="content">	
 			<h1 id="title">Media Servers</h1>
 			<ul id="servers" data-role="listview" data-inset="true" data-filter="true">
 			</ul>
+			<div id="search-box" data-role="fieldcontain">
+				<input type="text" data-mini="true" id="search-text"/>
+				<a id="search" href="#" data-role="button" data-inline="true" data-icon="search" >Search</a>
+			</div>
 		</div>
-		
+	
+	
 		<div data-inline="true" data-position-to="window" data-role="popup" data-history="false" data-overlay-theme="a" data-theme="e" class="ui-content" id="message-browser" data-transition="flip">
 		</div>
 		
 		<div data-role="footer" data-position="fixed">
-			<h4>&copy; 2012 <a href="http://www.x1/">X1</a></h4>
+			<h4><a href="http://www.x1/">X1 Media Player</a> &copy; 2012 </h4>
 		</div> 
 	</div>
 </body>

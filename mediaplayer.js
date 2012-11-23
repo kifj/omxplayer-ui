@@ -43,6 +43,9 @@ Client.prototype.initBrowserPage = function() {
 	$('#home').bind('click', function() {
 		caller.loadServers();		
 	});
+	$('#search').bind('click', function() {
+		caller.search($('#search-text').val());		
+	});
 	if (!this.path) {
 		this.loadServers();
 	} 
@@ -79,6 +82,7 @@ Client.prototype.loadServers = function(skipHistory) {
 			}
 		});
 		elem.listview('refresh');
+		$('#search-box').css('display', 'none'); 
 		$.mobile.loading('hide');
 		if (!skipHistory) {
 			history.pushState({ servers: true }, "X1 Media Player", "index.html");
@@ -124,6 +128,8 @@ Client.prototype.browse = function(server, path, skipHistory) {
 			caller.control(server, target, "play", "#message-browser");
 		});
 		elem.listview('refresh');
+		var search = data['search'];
+		$('#search-box').css('display', search ? 'inline' : 'none'); 
 		$.mobile.loading('hide');
 		if (!skipHistory) {
 			history.pushState( { server: server, path: path }, "X1 Media Player", "index.html");
@@ -190,6 +196,64 @@ Client.prototype.showMessageBox = function(id, message, autoclose) {
 			}, 2000);
 		}
 	}
+}
+
+Client.prototype.search = function(value, skipHistory) {
+	if (!value) {
+		return;
+	}
+	var caller = this;
+	var server = this.server;
+	var data = { command: 'search', value: value };
+	$.mobile.loading( 'show' );
+	var url = this.serversUrl + '/' + this.server;
+	$.postJSON(url, data, function(data) {
+		$('#search-text').val('');
+		var elem = $('#servers');
+		var path = data["path"];
+		$('#title').html(caller.getFolder(path));
+		caller.path = path;
+		elem.empty();
+		var parent = path;
+		if (parent == "/") {
+			elem.append('<li data-theme="b" data-icon="home" id="_up"><a class="folder" href="#">Up</a></li>');
+		} else {
+			parent = caller.getParent(server + path);
+			if (parent.indexOf("/_search") == parent.length - "/_search".length) {
+				elem.append('<li data-theme="b" data-icon="home" id="_up"><a class="folder" href="#">Up</a></li>');
+			} else {
+				elem.append('<li data-theme="b" data-icon="arrow-u" id="_up"><a class="folder" href="#" value="' + parent + '">Up</a></li>');
+			}
+		}
+		$.each(data["content"], function(key, item) {
+			if (item["folder"]) {
+				elem.append('<li id="' + key + '"><a class="folder" href="#" value="' + item["link"] + '">' + 
+					caller.getTitle(item["folder"], false) + '</a></li>');
+			} else if (item["file"]) {
+				elem.append('<li data-icon="check" id="' + key + '"><a class="file" href="#" value="' + item["link"] + '">' + 
+					caller.getTitle(item["file"], true) + '</a></li>');
+			}
+		});
+		$('#servers .folder').bind('click', function(event) {
+			var target = $(this).attr('value');
+			if (target) {
+				caller.browse(server, target);
+			} else {
+				caller.loadServers();
+			}
+		});
+		$('#servers .file').bind('click', function(event) {
+			var target = $(this).attr('value');
+			caller.control(server, target, "play", "#message-browser");
+		});
+		elem.listview('refresh');
+		var search = data['search'];
+		$('#search-box').css('display', search ? 'inline' : 'none'); 
+		$.mobile.loading('hide');
+		if (!skipHistory) {
+			history.pushState( { server: server, path: path }, "X1 Media Player", "index.html");
+		}
+	});		
 }
 
 Client.prototype.closeMessageBox = function(id) {
