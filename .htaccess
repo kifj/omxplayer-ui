@@ -5,7 +5,7 @@ RewriteEngine On
 # absolute physical path to the directory that contains this htaccess file.
 #
 # RewriteBase /
-RewriteBase /mediaplayer-dev
+RewriteBase /mediaplayer
 
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteRule ^(.*)$ index.php [QSA,L]
