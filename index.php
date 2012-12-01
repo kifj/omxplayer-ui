@@ -161,10 +161,10 @@ function controlFile($id) {
 				$result = "not implemented";
 				break;
 			case "add":
-				$result = "not implemented";
+				$result = add_folder($file);
 				break;
 			case "remove":
-				$result = "not implemented";
+				$result = remove_folder($file);
 				break;
 			case "search":
 				return search($server, "/_search/" . $control["value"]);
@@ -349,7 +349,6 @@ function write_playlist($playlist) {
 	return file_put_contents($playlist_file, $playlist);
 }
 
-
 function add_file($file) {
 	$playlist = read_playlist();
 	array_push($playlist, $file . "\n"); 
@@ -370,6 +369,46 @@ function remove_file($file) {
 		return "ok"; 
 	}
 }
+
+function add_folder($folder) {
+	$playlist = read_playlist();
+	if ($handle = opendir($folder)) {
+		while (false !== ($file = readdir($handle))) {
+			if (!startsWith($file, '.')  && is_file("$folder/$file")) {
+				array_push($playlist, "$folder/$file\n"); 
+			}
+		}
+		closedir($handle);
+	} else {
+		return "error";
+	}
+	if (!write_playlist($playlist)) {
+		return "error";
+	} else {
+		return "ok"; 
+	}
+}
+
+function remove_folder($folder) {
+	$playlist = read_playlist();
+	if ($handle = opendir($folder)) {
+		while (false !== ($file = readdir($handle))) {
+			if (!startsWith($file, '.')  && is_file("$folder/$file")) {
+				$playlist = array_diff($playlist, array("$folder/$file\n"));
+			}
+		}
+		closedir($handle);
+	} else {
+		return "error";
+	}
+	$playlist = array_values($playlist);
+	if (!write_playlist($playlist)) {
+		return "error";
+	} else {
+		return "ok"; 
+	}
+}
+
 
 function search($server, $path) {
 	$id = $server . $path;
