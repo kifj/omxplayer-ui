@@ -1,7 +1,7 @@
 var client = new Client();
 
 function Client() {
-	var baseUrl = "/mediaplayer";
+	var baseUrl = "/omxplayer-ui";
 	this.serversUrl = baseUrl + "/servers";
 	this.controlUrl = baseUrl + "/control";
 	

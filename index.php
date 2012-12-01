@@ -17,6 +17,7 @@ require_once 'Slim/Slim.php';
 $app = new \Slim\Slim();
 $app->add(new \Slim\Middleware\ContentTypes());
 $app->get('/servers', 'getServers');
+$app->get('/playlist', 'getPlaylist');
 $app->get('/servers/:id+',  'getServer');
 $app->post('/servers/:id+',  'controlFile');
 $app->post('/control',  'controlPlayer');
@@ -49,6 +50,24 @@ function getServers() {
 		$app->response()->status(404);
 	}
 }
+
+function getPlaylist() {
+	$app = Slim\Slim::getInstance();
+	$app->contentType('application/json');
+	$playlist = read_playlist();
+	echo "{\n  \"playlist\": [";
+	$is_first = true;
+	foreach ($playlist as $file) {
+		if ($is_first) {
+			$is_first = false;
+		} else {
+			echo ",";
+		}
+		echo "\n    { \"file\": " . json_encode(trim($file)) . " }";
+	}
+	echo "\n  ]\n}\n";
+}
+
 
 function getServer($id) {
 	$app = Slim\Slim::getInstance();
@@ -125,11 +144,11 @@ function controlFile($id) {
 			case "play":
 				$result = play($file);
 				break;
-			case "add":
-				$result = "not implemented";
+			case "add":				
+				$result = add_file($file);
 				break;
 			case "remove":
-				$result = "not implemented";
+				$result = remove_file($file);
 				break;
 			default:
 				$result = "illegal command";
@@ -257,30 +276,30 @@ function encodePath($url) {
 
 function play($file) {
 	$out = '';
-	exec('pgrep omxplayer', $pids);
-	if (empty($pids)) {
-		@unlink (FIFO);
-		posix_mkfifo(FIFO, 0777);
-		chmod(FIFO, 0777);
-		shell_exec ('/usr/local/bin/omx_runner.sh '.escapeshellarg($file));
-		$out = 'Now playing '.basename($file);
+	$info = pathinfo($file);
+	$picture_extensions = array("jpg", "JPG", "png");
+	$extension = $info['extension'];
+	$title =  basename($file, '.' . $extension);
+	if (in_array($extension, $picture_extensions)) {
+		//shell_exec ('cp ' . escapeshellarg($file) . ' /tmp/fim_current');		
+		$out = 'Not implemented';
 	} else {
-		$out = 'Player is already runnning';
+		exec('pgrep omxplayer', $pids);
+		if (empty($pids)) {
+			@unlink (FIFO);
+			posix_mkfifo(FIFO, 0777);
+			chmod(FIFO, 0777);
+			shell_exec ('/usr/local/bin/omx_runner.sh ' . escapeshellarg($file));
+			$out = 'Now playing ' . basename($title);
+		} else {
+			$out = 'Player is already runnning';
+		}
 	}
 	return $out;
 }
 
-function runPlayer($file) {
-	$commandJob = "/usr/bin/omxplayer -ohdmi $file";
-	$command = $commandJob.' > /dev/null 2>&1 & echo $!';
-	exec($command ,$op);
-	$pid = (int)$op[0];
-	if($pid!="") return $pid;
-	return -1;
-}
-
 function setupFifo() {
-	if (!stat(FIFO)) {
+	if (!file_exists(FIFO)) {
 		if (!posix_mkfifo(FIFO, 0777)) {
 			echo 'can\'t create '.FIFO.' - please fix persmissions!<br>';
 			die();
@@ -316,6 +335,42 @@ function send($command) {
 	return $out;
 }
 
+function read_playlist() {
+	$playlist_file = '/tmp/omxplayer_playlist.txt';
+	if (file_exists($playlist_file)) {
+		return file($playlist_file);
+	} else {
+		return array();
+	}
+}
+
+function write_playlist($playlist) {
+	$playlist_file = '/tmp/omxplayer_playlist.txt';
+	return file_put_contents($playlist_file, $playlist);
+}
+
+
+function add_file($file) {
+	$playlist = read_playlist();
+	array_push($playlist, $file . "\n"); 
+	if (!write_playlist($playlist)) {
+		return "error";
+	} else {
+		return "ok"; 
+	}
+}
+
+function remove_file($file) {
+	$playlist = read_playlist();
+	$playlist = array_diff($playlist, array($file . "\n"));
+	$playlist = array_values($playlist);
+	if (!write_playlist($playlist)) {
+		return "error";
+	} else {
+		return "ok"; 
+	}
+}
+
 function search($server, $path) {
 	$id = $server . $path;
 	$app = Slim\Slim::getInstance();
@@ -324,12 +379,12 @@ function search($server, $path) {
 	$extensions = array("mp3", "mpg", "avi", "mov", "mkv", "jpg", "JPG", "png", "flv", "MP3", "wav", "ogg");
 	echo "{\n  \"server\": \"$server\",\n";
 	echo "  \"path\": \"" . encodePath($path) . "\"";
-	
+
 	exec("ls -1 " . escapeshellarg($root_dir), $output);
-	
+
 	echo ",\n  \"content\": [";
 	$is_first = true;
-    foreach ($output as &$file){
+	foreach ($output as &$file){
 		$path_parts = pathinfo($file);
 		if (isset($path_parts['extension'])) {
 			$extension = $path_parts['extension'];
