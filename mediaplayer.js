@@ -70,70 +70,26 @@ Client.prototype.loadServers = function(skipHistory) {
 	$.getJSON(this.serversUrl, function(data) {
 		var elem = $('#servers');
 		elem.empty();
-		$.each(data["servers"], function(key, item) {
-			elem.append('<li id="' + key + '"><a href="#" value="' + item["server"] + '">' + 
-				item["server"] + '</a></li>');
-		});
-		$('#servers a').bind('click', function(event) {
-			var path = $(this).attr('value');
-			if (path) {
-				caller.server = path;
-				caller.browse(path, path);
-			}
-		});
-		elem.listview('refresh');
-		$('#search-box').css('display', 'none'); 
-		$.mobile.loading('hide');
-		if (!skipHistory) {
-			history.pushState({ servers: true }, "X1 Media Player", "index.html");
-		}
+		caller.addNavigateServers(elem, data, skipHistory);
 	});
 }
 
 Client.prototype.browse = function(server, path, skipHistory) {
 	var caller = this;
-	$('#title').html(this.getFolder(path));
 	$.mobile.loading('show');
 	$.getJSON(this.serversUrl + '/' + path, function(data) {
 		var elem = $('#servers');
 		var path = data["path"];
+		if (path == '/') {
+			$('#title').html(server);
+		} else {
+			$('#title').html(caller.getFolder(path));
+		}
 		caller.path = path;
 		elem.empty();
 		var parent = path;
-		if (parent == "/") {
-			elem.append('<li data-theme="b" data-icon="home" id="_up"><a class="folder" href="#">Up</a></li>');
-		} else {
-			parent = caller.getParent(server + path);
-			elem.append('<li data-theme="b" data-icon="arrow-u" id="_up"><a class="folder" href="#" value="' + parent + '">Up</a></li>');
-		}
-		$.each(data["content"], function(key, item) {
-			if (item["folder"]) {
-				elem.append('<li id="' + key + '"><a class="folder" href="#" value="' + item["link"] + '">' + 
-					caller.getTitle(item["folder"], false) + '</a></li>');
-			} else if (item["file"]) {
-				elem.append('<li data-icon="check" id="' + key + '"><a class="file" href="#" value="' + item["link"] + '">' + 
-					caller.getTitle(item["file"], true) + '</a></li>');
-			}
-		});
-		$('#servers .folder').bind('click', function(event) {
-			var target = $(this).attr('value');
-			if (target) {
-				caller.browse(server, target);
-			} else {
-				caller.loadServers();
-			}
-		});
-		$('#servers .file').bind('click', function(event) {
-			var target = $(this).attr('value');
-			caller.control(server, target, "play", "#message-browser");
-		});
-		elem.listview('refresh');
-		var search = data['search'];
-		$('#search-box').css('display', search ? 'inline' : 'none'); 
-		$.mobile.loading('hide');
-		if (!skipHistory) {
-			history.pushState( { server: server, path: path }, "X1 Media Player", "index.html");
-		}
+		caller.addNavigateUp(elem, parent, server + path);
+		caller.addNavigateLinks(server, elem, data, skipHistory);
 	});
 }
 
@@ -165,7 +121,7 @@ Client.prototype.getParent = function(path) {
 }
 
 Client.prototype.getFolder = function(path) {
-        path = decodeURIComponent(path);
+	path = decodeURIComponent(path);
 	path = path.replace("_","/");
 	var pos = path.lastIndexOf("/");
         if (pos >= 0 && pos < path.length - 1) {
@@ -215,58 +171,146 @@ Client.prototype.search = function(value, skipHistory) {
 		caller.path = path;
 		elem.empty();
 		var parent = path;
-		if (parent == "/") {
+		caller.addNavigateUp(elem, parent, server + path);
+		caller.addNavigateLinks(server, elem, data, skipHistory);
+	});		
+}
+
+Client.prototype.addNavigateLinks = function(server, elem, data, skipHistory) {
+	var caller = this;
+	var path = data["path"];
+	$.each(data["content"], function(key, item) {
+		if (item["folder"]) {
+			elem.append('<li id="' + key + '"><a class="folder" href="#" value="' + item["link"] + '">' + 
+				caller.getTitle(item["folder"], false) + '</a></li>');
+		} else if (item["file"]) {
+			elem.append('<li data-icon="check" id="' + key + '"><a class="file" href="#" value="' + item["link"] + '">' + 
+				caller.getTitle(item["file"], true) + '</a></li>');
+		}
+	});
+	$('#servers .folder').bind('click', function(event) {
+		var target = $(this).attr('value');
+		if (target) {
+			caller.browse(server, target);
+		} else {
+			caller.loadServers();
+		}
+	});
+	$('#servers .file').bind('click', function(event) {
+		var target = $(this).attr('value');
+		caller.control(server, target, "play", "#message-browser");
+	});	
+	$('#servers .folder').on("taphold", function(e) {
+        e.stopPropagation();
+        caller.openQueueDialog(this, server);
+	});
+	$('#servers .file').on("taphold", function(e) {
+        e.stopPropagation();
+        caller.openQueueDialog(this, server);
+	});
+	elem.listview('refresh');
+	var search = data['search'];
+	$('#search-box').css('display', search ? 'inline' : 'none'); 
+	$.mobile.loading('hide');
+	if (!skipHistory) {
+		history.pushState( { server: server, path: path }, "X1 Media Player", "index.html");
+	}	
+}
+
+Client.prototype.addNavigateUp = function(elem, parent, path) {
+	if (parent == "/") {
+		elem.append('<li data-theme="b" data-icon="home" id="_up"><a class="folder" href="#">Up</a></li>');
+	} else {
+		parent = this.getParent(path);
+		if (parent.indexOf("/_search") == parent.length - "/_search".length) {
 			elem.append('<li data-theme="b" data-icon="home" id="_up"><a class="folder" href="#">Up</a></li>');
 		} else {
-			parent = caller.getParent(server + path);
-			if (parent.indexOf("/_search") == parent.length - "/_search".length) {
-				elem.append('<li data-theme="b" data-icon="home" id="_up"><a class="folder" href="#">Up</a></li>');
-			} else {
-				elem.append('<li data-theme="b" data-icon="arrow-u" id="_up"><a class="folder" href="#" value="' + parent + '">Up</a></li>');
-			}
+			elem.append('<li data-theme="b" data-icon="arrow-u" id="_up"><a class="folder" href="#" value="' + parent + '">Up</a></li>');
 		}
-		$.each(data["content"], function(key, item) {
-			if (item["folder"]) {
-				elem.append('<li id="' + key + '"><a class="folder" href="#" value="' + item["link"] + '">' + 
-					caller.getTitle(item["folder"], false) + '</a></li>');
-			} else if (item["file"]) {
-				elem.append('<li data-icon="check" id="' + key + '"><a class="file" href="#" value="' + item["link"] + '">' + 
-					caller.getTitle(item["file"], true) + '</a></li>');
-			}
-		});
-		$('#servers .folder').bind('click', function(event) {
-			var target = $(this).attr('value');
-			if (target) {
-				caller.browse(server, target);
-			} else {
-				caller.loadServers();
-			}
-		});
-		$('#servers .file').bind('click', function(event) {
-			var target = $(this).attr('value');
-			caller.control(server, target, "play", "#message-browser");
-		});
-		elem.listview('refresh');
-		var search = data['search'];
-		$('#search-box').css('display', search ? 'inline' : 'none'); 
-		$.mobile.loading('hide');
-		if (!skipHistory) {
-			history.pushState( { server: server, path: path }, "X1 Media Player", "index.html");
+	}	
+}
+
+Client.prototype.addNavigateServers = function(elem, data, skipHistory) {
+	var caller = this;
+	$.each(data["servers"], function(key, item) {
+		elem.append('<li id="' + key + '"><a href="#" value="' + item["server"] + '">' + 
+			item["server"] + '</a></li>');
+	});
+	$('#servers a').bind('click', function(event) {
+		var path = $(this).attr('value');
+		if (path) {
+			caller.server = path;
+			caller.browse(path, path);
 		}
-	});		
+	});
+	elem.listview('refresh');
+	$('#search-box').css('display', 'none'); 
+	$.mobile.loading('hide');
+	if (!skipHistory) {
+		history.pushState({ servers: true }, "X1 Media Player", "index.html");
+	}	
 }
 
 Client.prototype.closeMessageBox = function(id) {
 	$(id).popup('close');
 }
 
+Client.prototype.openQueueDialog = function(item, server) {
+	var caller = this;
+	var target = $(item).attr('value');
+	var value = $(item).text();
+	var buttons = {};
+	buttons['Play'] = {
+		click: function () { 
+			caller.control(server, target, "play", "#message-browser");
+			this.close();
+		},
+		corners: false
+	};
+	buttons['Add to playlist'] = {
+		click: function () { 
+			caller.control(server, target, "add", "#message-browser");
+			this.close();
+		},
+		icon: "arrow-r",
+		theme: "c",
+		corners: false
+	};
+	buttons['Remove from playlist'] = {
+		click: function () { 
+			caller.control(server, target, "remove", "#message-browser");
+			this.close();
+		},  
+		icon: "arrow-l",
+		theme: "c",
+		corners: false
+	};
+	buttons['Cancel'] = {
+		click: function () { 
+			this.close();
+		},  
+		icon: "delete",
+		theme: "c",
+		corners: false
+	};
+	$('<div>').simpledialog2({
+	    mode: 'button',
+		buttonPrompt: value,
+	    headerText: "Please choose",
+	    headerClose: true,
+	    buttons : buttons
+	    }
+	);
+	$('.ui-simpledialog-controls a').css('margin', '0');
+}
+
 $.postJSON = function(url, data, callback) {
-		return jQuery.ajax({
-				'type': 'POST',
-				'url': url,
-				'contentType': 'application/json',
-				'data': $.toJSON(data),
-				'dataType': 'json',
-				'success': callback
-		});
+	return jQuery.ajax({
+		'type': 'POST',
+		'url': url,
+		'contentType': 'application/json',
+		'data': $.toJSON(data),
+		'dataType': 'json',
+		'success': callback
+	});
 };
