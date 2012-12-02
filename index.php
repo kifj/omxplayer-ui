@@ -21,14 +21,21 @@ $app->get('/playlist', 'getPlaylist');
 $app->get('/servers/:id+',  'getServer');
 $app->post('/servers/:id+',  'controlFile');
 $app->post('/control',  'controlPlayer');
+$app->get('/status', 'getStatus');
 $app->run();
 
 function getRoot() {
 	return '/media/upnp';
 }
 
+function getExtensions() {
+	return array("mp3", "m3u", "mpg", "avi", "mov", "mkv", "jpg", "JPG", "png", "flv", "MP3", "wav", "ogg");
+}
+
 function getServers() {
 	$app = Slim\Slim::getInstance();
+	$log = $app->getLog();
+	$log->info("-> getServers");
 	$app->contentType('application/json');
 	$root_dir = getRoot();
 	if (is_dir($root_dir) && $handle = opendir($root_dir)) {
@@ -53,6 +60,8 @@ function getServers() {
 
 function getPlaylist() {
 	$app = Slim\Slim::getInstance();
+	$log = $app->getLog();
+	$log->info("-> getPlaylist");
 	$app->contentType('application/json');
 	$playlist = read_playlist();
 	echo "{\n  \"playlist\": [";
@@ -81,8 +90,7 @@ function getServer($id) {
 	}
 	$id = implode("/", $id);
 	$root_dir = getRoot() . '/' . $id;
-	$extensions = array("mp3", "mpg", "avi", "mov", "mkv", "jpg", "JPG", "png", "flv", "MP3", "wav", "ogg");
-
+	$extensions = getExtensions();
 	echo "{\n  \"server\": \"$server\",\n";
 	echo "  \"path\": \"" . encodePath($path) . "\"";
 	if (is_dir($root_dir) && $handle = opendir($root_dir)) {
@@ -158,7 +166,7 @@ function controlFile($id) {
 	} else if (is_dir($file)) {
 		switch ($control["command"]) {
 			case "play":
-				$result = "not implemented";
+				$result = play_folder($file);;
 				break;
 			case "add":
 				$result = add_folder($file);
@@ -275,6 +283,9 @@ function encodePath($url) {
 }
 
 function play($file) {
+	$app = Slim\Slim::getInstance();
+	$log = $app->getLog();
+	$log->info("-> playFile: $file");
 	$out = '';
 	$info = pathinfo($file);
 	$picture_extensions = array("jpg", "JPG", "png");
@@ -290,7 +301,9 @@ function play($file) {
 			posix_mkfifo(FIFO, 0777);
 			chmod(FIFO, 0777);
 			shell_exec ('/usr/local/bin/omx_runner.sh ' . escapeshellarg($file));
-			$out = 'Now playing ' . basename($title);
+			setCurrent($file);
+			remove_file($file);
+			$out = 'Now playing: ' . basename($title);
 		} else {
 			$out = 'Player is already runnning';
 		}
@@ -344,6 +357,21 @@ function read_playlist() {
 	}
 }
 
+function getCurrent() {
+	$playcurrent_file = '/tmp/omxplayer_current.txt';
+	if (file_exists($playcurrent_file)) {
+		return file_get_contents($playcurrent_file);
+	} else {
+		return null;
+	}
+}
+
+function setCurrent($file) {
+	$playcurrent_file = '/tmp/omxplayer_current.txt';
+	$root_dir = getRoot();
+	return file_put_contents($playcurrent_file, str_replace($root_dir . "/", "", $file));	
+}
+
 function write_playlist($playlist) {
 	$playlist_file = '/tmp/omxplayer_playlist.txt';
 	return file_put_contents($playlist_file, $playlist);
@@ -389,6 +417,36 @@ function add_folder($folder) {
 	}
 }
 
+function play_folder($folder) {
+	$app = Slim\Slim::getInstance();
+	$log = $app->getLog();
+	$log->info("-> playFolder: $folder");
+	$playlist = array();
+	$play_file = null;
+	if ($handle = opendir($folder)) {
+		while (false !== ($file = readdir($handle))) {
+			if (!startsWith($file, '.')  && is_file("$folder/$file")) {
+				if ($play_file == null) {
+					$play_file = "$folder/$file";
+				} 
+				array_push($playlist, "$folder/$file\n"); 
+			}
+		}
+		closedir($handle);
+	} else {
+		return "error";
+	}
+	if (!write_playlist($playlist)) {
+		return "error";
+	} else {
+		if ($play_file != null) {
+			return play($play_file);
+		}
+		return "ok"; 
+	}
+}
+
+
 function remove_folder($folder) {
 	$playlist = read_playlist();
 	if ($handle = opendir($folder)) {
@@ -415,7 +473,7 @@ function search($server, $path) {
 	$app = Slim\Slim::getInstance();
 	$app->contentType('application/json');
 	$root_dir = getRoot() . "/" . $id;
-	$extensions = array("mp3", "mpg", "avi", "mov", "mkv", "jpg", "JPG", "png", "flv", "MP3", "wav", "ogg");
+	$extensions = getExtensions();
 	echo "{\n  \"server\": \"$server\",\n";
 	echo "  \"path\": \"" . encodePath($path) . "\"";
 
@@ -449,6 +507,19 @@ function search($server, $path) {
 	$response = $app->response();
 	$response["Cache-Control"] ="max-age=600"; 
 	echo "\n}\n";
+}
+
+function getStatus() {
+	$app = Slim\Slim::getInstance();
+	$log = $app->getLog();
+	$log->info("-> getStatus");
+	$app->contentType('application/json');
+	$playing = getCurrent();
+	if ($playing) {
+		echo "{\n  \"file\": " . json_encode($playing) . "\n}";
+	} else {
+		$app->response()->status(404);
+	}
 }
 
 ?>
