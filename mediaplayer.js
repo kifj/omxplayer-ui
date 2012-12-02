@@ -4,6 +4,8 @@ function Client() {
 	var baseUrl = "/omxplayer-ui";
 	this.serversUrl = baseUrl + "/servers";
 	this.controlUrl = baseUrl + "/control";
+	this.statusUrl = baseUrl + "/status";
+	this.playlistUrl = baseUrl + "/playlist";
 	
 	$.ajaxSetup({
 		"error": function(jqXHR, textStatus, errorThrown) {
@@ -40,15 +42,17 @@ function Client() {
 
 Client.prototype.initBrowserPage = function() {
 	var caller = this;
-	$('#home').bind('click', function() {
-		caller.loadServers();		
-	});
-	$('#search').bind('click', function() {
-		caller.search($('#search-text').val());		
-	});
-	if (!this.path) {
-		this.loadServers();
-	} 
+	if (!caller.browserPageInit) {
+		caller.browserPageInit = true;
+		$('#home').bind('click', function() {
+			caller.loadServers();		
+		});
+		
+		$('#search').bind('click', function() {
+			caller.search($('#search-text').val());		
+		});
+		caller.loadServers();
+	}
 }
 
 Client.prototype.initPlayerPage = function() {
@@ -56,6 +60,19 @@ Client.prototype.initPlayerPage = function() {
 	$('.control').bind('click', function() {
 		var command = $(this).attr('value');
 		caller.control(caller.server, null, command, "#message-player");
+	});
+	$('#index-page').live('pageshow', function(event, ui) {
+		if (!caller.statusInterval) {
+			caller.getStatus();
+			caller.statusInterval = window.setInterval("client.getStatus();", 5000);
+			caller.getPlaylist();
+		}
+	});
+	$('#index-page').live('pagehide', function(event, ui) {
+		if (caller.statusInterval) {
+			window.clearInterval(caller.statusInterval);
+			caller.statusInterval = null;
+		}
 	});
 }
 
@@ -107,6 +124,36 @@ Client.prototype.control = function(server, target, command, id) {
 	});	
 }
 
+Client.prototype.getStatus = function() {
+	var caller = this;
+	$.getJSON(this.statusUrl, function(data) {
+		var running = data["running"];
+		var file = caller.getTitle(data["file"], true);
+		if (!running) {
+			$('#status').text("Player is stopped");
+			$('#status').trigger("collapse");
+			$('#playing').text("");
+		} else {
+			$('#status').text("Player is running");
+			$('#status').trigger("expand");
+			$('#playing').text("Currently playing: " + file);
+		}
+	});
+}
+
+Client.prototype.getPlaylist = function() {
+	var caller = this;
+	var elem = $('#playlist');
+	elem.empty();
+	$.getJSON(this.playlistUrl, function(data) {
+		$.each(data["playlist"], function(key, item) {
+			elem.append('<li data-icon="check" id="' + key + '"><a class="file" href="#" value="' + item["link"] + '">' + 
+				caller.getTitle(item["file"], true) + '</a></li>');
+		});
+		elem.listview('refresh');
+	});
+}
+
 Client.prototype.getParent = function(path) {
 	path = path.replace("//","/");
 	var pos = path.lastIndexOf("/");
@@ -130,7 +177,8 @@ Client.prototype.getFolder = function(path) {
 	return path;
 }
 
-Client.prototype.getTitle = function(name, stripExtension) {	
+Client.prototype.getTitle = function(name, stripExtension) {
+	if (!name) return name;
 	name = name.replace("_","/");
 	if (stripExtension) {
 		var pos = name.lastIndexOf(".");

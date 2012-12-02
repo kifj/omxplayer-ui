@@ -30,7 +30,10 @@
 		</div>
 
 		<div data-role="content">	
-			<h1 id="title">Remote control</h1>
+			<div data-role="collapsible" data-collapsed="true" data-theme="b" data-content-theme="d">
+				<h3 id="title"><span id="status">Remote control</span></h3>
+				<p id="playing"></p>
+			</div>
 			
 			<div class="ui-grid-solo">
 				<div class="ui-block-a"><button class="control" type="v" value="pause">Pause</button></div>
@@ -44,7 +47,11 @@
 			<div class="ui-grid-solo">
 				<div class="ui-block-a"><button class="control" type="v" data-theme="b" value="stop">Stop</button></div>
 			</div>			
-			
+			<div data-role="collapsible" data-collapsed="true" data-theme="d" data-content-theme="d">
+				<h3>Playlist</h3>
+				<ul id="playlist" data-role="listview" data-inset="true">
+				</ul>
+			</div>
 		</div>
 
 		<div data-inline="true" data-role="popup" data-position-to="window" data-history="false" id="message-player" data-overlay-theme="a" data-theme="e" class="ui-content" data-transition="flip">

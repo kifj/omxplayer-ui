@@ -53,6 +53,8 @@ function getServers() {
 		}
 		closedir($handle);
 		echo "\n  ]\n}\n";
+		$response = $app->response();
+		$response["Cache-Control"] ="max-age=600"; 
 	} else {
 		$app->response()->status(404);
 	}
@@ -66,15 +68,20 @@ function getPlaylist() {
 	$playlist = read_playlist();
 	echo "{\n  \"playlist\": [";
 	$is_first = true;
+	$root_dir = getRoot();
 	foreach ($playlist as $file) {
 		if ($is_first) {
 			$is_first = false;
 		} else {
 			echo ",";
 		}
-		echo "\n    { \"file\": " . json_encode(trim($file)) . " }";
+		$file = str_replace($root_dir . "/", "", trim($file));
+		$path = explode("/", $file);
+		echo "\n    { \"file\": " . json_encode(end($path)) . ", \"link\": " . json_encode($file) . " }";
 	}
 	echo "\n  ]\n}\n";
+	$response = $app->response();
+	$response["Cache-Control"] ="max-age=0"; 
 }
 
 
@@ -504,22 +511,29 @@ function search($server, $path) {
 	}
 	echo "\n  ],";
 	echo "\n  \"search\": false";
+	echo "\n}\n";
 	$response = $app->response();
 	$response["Cache-Control"] ="max-age=600"; 
-	echo "\n}\n";
 }
 
 function getStatus() {
 	$app = Slim\Slim::getInstance();
-	$log = $app->getLog();
-	$log->info("-> getStatus");
 	$app->contentType('application/json');
+	$log = $app->getLog();
 	$playing = getCurrent();
+	$log->info("-> getStatus " + $playing);
+	$root_dir = getRoot();
+	echo "{\n";
+	exec('pgrep omxplayer', $pids);
+	echo "  \"running\": " . (empty($pids) ? "false" : "true");
 	if ($playing) {
-		echo "{\n  \"file\": " . json_encode($playing) . "\n}";
-	} else {
-		$app->response()->status(404);
+		$file = str_replace($root_dir . "/", "", trim($playing));
+		$path = explode("/", $playing);
+		echo ",\n  \"file\": " . json_encode(end($path)) . ",\n  \"link\": " . json_encode($playing);	
 	}
+	echo "\n}";
+	$response = $app->response();
+	$response["Cache-Control"] ="max-age=0"; 
 }
 
 ?>
