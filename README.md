@@ -13,12 +13,12 @@ Prerequisites (this is my setup, many ways lead to Rome)
 
 Setup for Nginx: add this location to the site config
 
-# nginx configuration
-location /omxplayer-ui/ {
-  if (!-e $request_filename){
-    rewrite ^/omxplayer-ui/(.*)$ /omxplayer-ui/index.php break;
-  }
-}
+    # nginx configuration
+    location /omxplayer-ui/ {
+      if (!-e $request_filename) {
+        rewrite ^/omxplayer-ui/(.*)$ /omxplayer-ui/index.php break;
+      }
+    }
 
 Setup (this is my setup, many ways ... you know that already)
  * copy etc/omx_runner.sh to /usr/local/bin
