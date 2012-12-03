@@ -12,6 +12,7 @@ Prerequisites (this is my setup, many ways lead to Rome)
  * djmount (optional)
 
 Setup (this is my setup, many ways ... you know that already)
+ * copy etc/omx_runner.sh to /usr/local/bin
  * djmount mounts the media servers to /media/upnp 
  * if you have a different mount point, edit index.php
  * the first level of directories represents the servers, you can set up symlinks to samba or nfs mounts if you like
@@ -27,6 +28,7 @@ Feature set:
   * volume up and down
   * seek 30sec forward and backward
   * stop
+ * search (which can be done in djmount with some special ls _search/ filters
 
 Parts of the code were reused from https://github.com/JugglerLKR/omxplayer-web-controls-php, 
 especially the trick how to send keys to a running omxplayer through a FIFO.
@@ -38,5 +40,4 @@ Open features:
   * list and reorder items (new page)  
  * pause in the header bar
  * show MP3 infos from tag
- * search (which can be done in djmount with some special ls _search/ filters
 
