@@ -16,7 +16,7 @@ Setup for Nginx: add this location to the site config
     # nginx configuration
     location /omxplayer-ui/ {
       if (!-e $request_filename) {
-        rewrite ^/omxplayer-ui/(.*)$ /omxplayer-ui/index.php break;
+        rewrite ^/omxplayer-ui/(.*)$ /omxplayer-ui/index.php;
       }
     }
 
