@@ -135,7 +135,7 @@ Client.prototype.getStatus = function() {
 			$('#playing').text("");
 		} else {
 			$('#status').text("Player is running");
-			$('#status').trigger("expand");
+			//$('#status').trigger("expand");
 			$('#playing').text("Currently playing: " + file);
 		}
 	});
@@ -249,12 +249,12 @@ Client.prototype.addNavigateLinks = function(server, elem, data, skipHistory) {
 		caller.control(server, target, "play", "#message-browser");
 	});	
 	$('#servers .folder').on("taphold", function(e) {
-        e.stopPropagation();
-        caller.openQueueDialog(this, server);
+		caller.openQueueDialog(this, server);
+		e.stopPropagation();
 	});
 	$('#servers .file').on("taphold", function(e) {
-        e.stopPropagation();
-        caller.openQueueDialog(this, server);
+		caller.openQueueDialog(this, server);
+		e.stopPropagation();
 	});
 	elem.listview('refresh');
 	var search = data['search'];

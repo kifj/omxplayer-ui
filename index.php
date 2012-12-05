@@ -24,20 +24,30 @@ $app->post('/control',  'controlPlayer');
 $app->get('/status', 'getStatus');
 $app->run();
 
-function getRoot() {
-	return '/media/upnp';
+// ------------------------------------------------------------------------------------------------
+// Customization go here
+
+function getOption($key) {
+	// root folder for media files
+	$config['root'] = '/media/upnp';
+	// options to use for omxplayer
+	$config['omx_options'] = '-p -o hdmi';
+	return $config[$key];
 }
 
 function getExtensions() {
 	return array("mp3", "m3u", "mpg", "avi", "mov", "mkv", "jpg", "JPG", "png", "flv", "MP3", "wav", "ogg");
 }
 
+// ------------------------------------------------------------------------------------------------
+
+
 function getServers() {
 	$app = Slim\Slim::getInstance();
 	$log = $app->getLog();
 	$log->info("-> getServers");
 	$app->contentType('application/json');
-	$root_dir = getRoot();
+	$root_dir = getOption('root');
 	if (is_dir($root_dir) && $handle = opendir($root_dir)) {
 		echo "{\n  \"servers\": [";
 		$is_first = true;
@@ -68,7 +78,7 @@ function getPlaylist() {
 	$playlist = read_playlist();
 	echo "{\n  \"playlist\": [";
 	$is_first = true;
-	$root_dir = getRoot();
+	$root_dir = getOption('root');
 	foreach ($playlist as $file) {
 		if ($is_first) {
 			$is_first = false;
@@ -96,7 +106,7 @@ function getServer($id) {
 		$path = "/" . $path; 
 	}
 	$id = implode("/", $id);
-	$root_dir = getRoot() . '/' . $id;
+	$root_dir = getOption('root') . '/' . $id;
 	$extensions = getExtensions();
 	echo "{\n  \"server\": \"$server\",\n";
 	echo "  \"path\": \"" . encodePath($path) . "\"";
@@ -149,7 +159,7 @@ function controlFile($id) {
 		$path = "/" . $path;
 	}
 	$id = implode("/", $id);
-	$file = getRoot() . '/' . $id;
+	$file = getOption('root') . '/' . $id;
 
 	$request = $app->request();
 	$control = $request->getBody();
@@ -252,7 +262,7 @@ function controlPlayer() {
 			$result = send('n');
 			break;
 		case 'play':
-			$file = getRoot() . '/' . urldecode($control["file"]);
+			$file = getOption('root') . '/' . urldecode($control["file"]);
 			if (is_file($file)) {
 				$result = play($file);
 			} else {
@@ -282,6 +292,8 @@ function boolString($bValue = false) {
 }
 
 function encodePath($url) {
+	if (!$url) return null;
+	$url = str_replace("//", "/", $url);
 	$url = urlencode($url);
 	$url = str_replace("+", "%20", $url);
 	$url = str_replace("%2F", "/", $url);
@@ -307,7 +319,7 @@ function play($file) {
 			@unlink (FIFO);
 			posix_mkfifo(FIFO, 0777);
 			chmod(FIFO, 0777);
-			shell_exec ('/usr/local/bin/omx_runner.sh ' . escapeshellarg($file));
+			shell_exec ('/usr/local/bin/omx_runner.sh ' . escapeshellarg($file) . ' ' . getOption('omx_options'));
 			setCurrent($file);
 			remove_file($file);
 			$out = 'Now playing: ' . basename($title);
@@ -375,7 +387,7 @@ function getCurrent() {
 
 function setCurrent($file) {
 	$playcurrent_file = '/tmp/omxplayer_current.txt';
-	$root_dir = getRoot();
+	$root_dir = getOption('root');
 	return file_put_contents($playcurrent_file, str_replace($root_dir . "/", "", $file));	
 }
 
@@ -479,7 +491,7 @@ function search($server, $path) {
 	$id = $server . $path;
 	$app = Slim\Slim::getInstance();
 	$app->contentType('application/json');
-	$root_dir = getRoot() . "/" . $id;
+	$root_dir = getOption('root') . "/" . $id;
 	$extensions = getExtensions();
 	echo "{\n  \"server\": \"$server\",\n";
 	echo "  \"path\": \"" . encodePath($path) . "\"";
@@ -521,8 +533,8 @@ function getStatus() {
 	$app->contentType('application/json');
 	$log = $app->getLog();
 	$playing = getCurrent();
-	$log->info("-> getStatus " + $playing);
-	$root_dir = getRoot();
+	//$log->info("-> getStatus " + $playing);
+	$root_dir = getOption('root');
 	echo "{\n";
 	exec('pgrep omxplayer', $pids);
 	echo "  \"running\": " . (empty($pids) ? "false" : "true");
