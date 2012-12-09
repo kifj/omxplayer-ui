@@ -37,15 +37,16 @@ Feature set:
   * volume up and down
   * seek 30sec forward and backward
   * stop
+  * show MP3 infos from tag
+  * show what is currently played
  * search (which can be done in djmount with some special ls _search/ filters
 
 Parts of the code were reused from https://github.com/JugglerLKR/omxplayer-web-controls-php, 
 especially the trick how to send keys to a running omxplayer through a FIFO.
 
 Open features:
- * show what is currently played
  * a playlist (you can only play one file currently)
-  * add and remove items to the playlist (stored in a file, maybe create an m3u on the fly)  
-  * list and reorder items (new page)  
+  * add and remove items to the playlist (stored in a file)  
+  * show playlist on control page   
  * pause in the header bar
- * show MP3 infos from tag
+ * image viewer
