@@ -40,41 +40,45 @@ function Client() {
 
 //---------------------------------------------------------------------
 
-Client.prototype.initBrowserPage = function() {
-	var caller = this;
-	if (!caller.browserPageInit) {
-		caller.browserPageInit = true;
-		$('#home').bind('click', function() {
-			caller.loadServers();		
-		});
-		
-		$('#search').bind('click', function() {
-			caller.search($('#search-text').val());		
-		});
-		caller.loadServers();
+Client.prototype.initPage = function() {
+	if (this.pageChangeHandler) {
+		return;
 	}
-}
-
-Client.prototype.initPlayerPage = function() {
+	this.pageChangeHandler = true;
 	var caller = this;
-	$('.control').bind('click', function() {
-		var command = $(this).attr('value');
-		caller.control(caller.server, null, command, "#message-player");
-	});
-	$('#index-page').live('pageshow', function(event, ui) {
-		if (!caller.statusInterval) {
-			caller.getStatus();
-			caller.statusInterval = window.setInterval("client.getStatus();", 5000);
-			caller.getPlaylist();
+	$("div[data-role*='page']").live('pageshow', function(event, ui) {
+		if (event.target.id == "browse-page") {
+			$('#home').bind('click', function() {
+				caller.loadServers();		
+			});
+			$('#search').bind('click', function() {
+				caller.search($('#search-text').val());		
+			});
+			if (!caller.path) {
+				caller.loadServers();
+			} else {
+				caller.browse(caller.server, caller.path, true);
+			}
+		} else if (event.target.id == "player-page") {
+			$('.control').bind('click', function() {
+				var command = $(this).attr('value');
+				caller.control(caller.server, null, command, "#message-player");
+			});
+			$('#index-page').live('pageshow', function(event, ui) {
+				if (!caller.statusInterval) {
+					caller.getStatus(true);
+					caller.statusInterval = window.setInterval("client.getStatus(true);", 5000);
+				}
+			});
+			$('#index-page').live('pagehide', function(event, ui) {
+				if (caller.statusInterval) {
+					window.clearInterval(caller.statusInterval);
+					caller.statusInterval = null;
+				}
+			});
 		}
 	});
-	$('#index-page').live('pagehide', function(event, ui) {
-		if (caller.statusInterval) {
-			window.clearInterval(caller.statusInterval);
-			caller.statusInterval = null;
-		}
-	});
-}
+} 
 
 //---------------------------------------------------------------------
 
@@ -92,6 +96,7 @@ Client.prototype.loadServers = function(skipHistory) {
 }
 
 Client.prototype.browse = function(server, path, skipHistory) {
+	if (!server) return;
 	var caller = this;
 	$.mobile.loading('show');
 	$.getJSON(this.serversUrl + '/' + path, function(data) {
@@ -124,21 +129,36 @@ Client.prototype.control = function(server, target, command, id) {
 	});	
 }
 
-Client.prototype.getStatus = function() {
+Client.prototype.getStatus = function(loadPlaylist) {
 	var caller = this;
 	$.getJSON(this.statusUrl, function(data) {
 		var running = data["running"];
-		var file = caller.getTitle(data["file"], true);
+		caller.running = running;
+		var text = "";
 		if (!running) {
 			$('#status').text("Player is stopped");
 			$('#status').trigger("collapse");
 			$('#playing').text("");
 		} else {
+			var title = data["title"];
+			if (!title) title = caller.getTitle(data["file"], true);
 			$('#status').text("Player is running");
-			//$('#status').trigger("expand");
-			$('#playing').text("Currently playing: " + file);
+			text = "Currently playing: " + title;
+			$('#playing').text(text);
+			$('#playing').append("<br/><p>")
+			if (data["title"]) $('#playing').append("<b>Title:</b> " + data["title"] + "<br/>");
+			if (data["playtime"]) $('#playing').append("<b>Length:</b> " + data["playtime"] + "<br/>");
+			if (data["artist"]) $('#playing').append("<b>Artist:</b> " + data["artist"] + "<br/>");
+			if (data["album"]) $('#playing').append("<b>Album:</b> " + data["album"] + "<br/>");
+			if (data["track"]) $('#playing').append("<b>Track:</b> " + data["track"] + "<br/>");
+			if (data["genre"]) $('#playing').append("<b>Genre:</b> " + data["genre"] + "<br/>");
+			if (data["year"]) $('#playing').append("<b>Year:</b> " + data["year"] + "<br/>");
+			$('#playing').append("</p>")
 		}
 	});
+	if (loadPlaylist) {
+		this.getPlaylist();
+	}
 }
 
 Client.prototype.getPlaylist = function() {

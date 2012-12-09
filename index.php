@@ -12,6 +12,7 @@ define('FIFO', '/tmp/omxplayer_fifo');
 setupFifo();
 
 require_once 'Slim/Slim.php';
+require_once 'audioinfo.php';
 \Slim\Slim::registerAutoloader();
 
 $app = new \Slim\Slim();
@@ -32,6 +33,8 @@ function getOption($key) {
 	$config['root'] = '/media/upnp';
 	// options to use for omxplayer
 	$config['omx_options'] = '-p -o hdmi';
+	// read ID3 info
+	$config['id3'] = true;
 	return $config[$key];
 }
 
@@ -72,8 +75,8 @@ function getServers() {
 
 function getPlaylist() {
 	$app = Slim\Slim::getInstance();
-	$log = $app->getLog();
-	$log->info("-> getPlaylist");
+	//$log = $app->getLog();
+	//$log->info("-> getPlaylist");
 	$app->contentType('application/json');
 	$playlist = read_playlist();
 	echo "{\n  \"playlist\": [";
@@ -531,21 +534,62 @@ function search($server, $path) {
 function getStatus() {
 	$app = Slim\Slim::getInstance();
 	$app->contentType('application/json');
-	$log = $app->getLog();
 	$playing = getCurrent();
+	//$log = $app->getLog();
 	//$log->info("-> getStatus " + $playing);
 	$root_dir = getOption('root');
 	echo "{\n";
 	exec('pgrep omxplayer', $pids);
 	echo "  \"running\": " . (empty($pids) ? "false" : "true");
-	if ($playing) {
-		$file = str_replace($root_dir . "/", "", trim($playing));
+	if ($playing && !empty($pids)) {
+		$playing = trim($playing);
+		$file = str_replace($root_dir . "/", "", $playing);
+		if (getOption("id3")) {
+			$au = new AudioInfo();
+			$audioinfo = $au->Info($root_dir . "/" . $playing);
+			//print_r($audioinfo);
+			if (isset($audioinfo['comments']['artist'])) {
+				echo ",\n  \"artist\": " . json_encode($audioinfo['comments']['artist'][0]);
+			}
+			if (isset($audioinfo['comments']['title'])) {
+				echo ",\n  \"title\": " . json_encode($audioinfo['comments']['title'][0]);
+			}
+			if (isset($audioinfo['comments']['album'])) {
+				echo ",\n  \"album\": " . json_encode($audioinfo['comments']['album'][0]);
+			}
+			if (isset($audioinfo['comments']['genre'])) {
+				echo ",\n  \"genre\": " . json_encode($audioinfo['comments']['genre'][0]);
+			}
+			if (isset($audioinfo['comments']['track'])) {
+				echo ",\n  \"track\": " . json_encode($audioinfo['comments']['track'][0]);
+			}
+			if (isset($audioinfo['comments']['year'])) {
+				echo ",\n  \"year\": " . json_encode($audioinfo['comments']['year'][0]);
+			}
+			if (isset($audioinfo["playtime_string"])) {
+				echo ",\n  \"playtime\": " . json_encode($audioinfo["playtime_string"]);
+			}
+			if (isset($audioinfo["format_name"])) {
+				echo ",\n  \"format\": " . json_encode($audioinfo["format_name"]);
+			}
+			if (isset($audioinfo["bitrate_mode"])) {
+				echo ",\n  \"bitrate_mode\": " . json_encode($audioinfo["bitrate_mode"]);
+			}
+			if (isset($audioinfo["bitrate"])) {
+				echo ",\n  \"bitrate\": " . json_encode($audioinfo["bitrate"]);
+			}
+			if (isset($audioinfo['video']['resolution_x']) && isset($audioinfo['video']['resolution_y'])) {
+				echo ",\n  \"resolution\": " . json_encode($audioinfo['video']['resolution_x'] . "x" . $audioinfo['video']['resolution_y']);
+			}
+		}
+		$file = str_replace($root_dir . "/", "", $playing);
 		$path = explode("/", $playing);
-		echo ",\n  \"file\": " . json_encode(end($path)) . ",\n  \"link\": " . json_encode($playing);	
+		echo ",\n  \"file\": " . json_encode(end($path));
+		echo ",\n  \"link\": " . json_encode($file);
 	}
 	echo "\n}";
 	$response = $app->response();
-	$response["Cache-Control"] ="max-age=0"; 
+	$response["Cache-Control"] ="max-age=5"; 
 }
 
 ?>

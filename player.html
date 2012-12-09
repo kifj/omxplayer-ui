@@ -16,15 +16,15 @@
 	<script type="text/javascript" src="jquery.mobile.simpledialog2.min.js"></script>  
 </head> 
 <body>
-	<div id="index-page" data-role="page">
+	<div id="player-page" data-role="page">
 		<script type="text/javascript">
 		$(document).bind('pageinit', function() {
-			client.initPlayerPage();
+			client.initPage();
 		});
 		</script>	
 
 		<div data-role="header" data-position="fixed">
-			<a id="home" href="index.html" data-icon="home">Servers</a>
+			<a href="index.html" data-icon="home">Servers</a>
 			<h1>X1 Media Player</h1>
 			<a id="player" href="#" data-icon="gear" data-theme="b">Player</a>
 		</div>
