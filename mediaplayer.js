@@ -57,7 +57,23 @@ Client.prototype.initPage = function() {
 			if (!caller.path) {
 				caller.loadServers();
 			} else {
-				caller.browse(caller.server, caller.path, true);
+				caller.browse(caller.server, caller.server + "/" + caller.path, true);
+			}
+			$('#browse-page').live('pageshow', function(event, ui) {
+				if (!caller.statusInterval) {
+					caller.getStatus(true);
+					caller.statusInterval = window.setInterval("client.getStatus(false);", 5000);
+				}
+			});
+			$('#browse-page').live('pagehide', function(event, ui) {
+				if (caller.statusInterval) {
+					window.clearInterval(caller.statusInterval);
+					caller.statusInterval = null;
+				}
+			});
+			if (!caller.statusInterval) {
+				caller.getStatus(false);
+				caller.statusInterval = window.setInterval("client.getStatus(false);", 5000);
 			}
 		} else if (event.target.id == "player-page") {
 			$('.control').bind('click', function() {
@@ -138,26 +154,27 @@ Client.prototype.getStatus = function(loadPlaylist) {
 	$.getJSON(this.statusUrl, function(data) {
 		var running = data["running"];
 		caller.running = running;
-		var text = "";
 		if (!running) {
 			$('#status').text("Player is stopped");
 			$('#status').trigger("collapse");
-			$('#playing').text("");
+			$('#playing').text('');
+			$('#status-info-text').text('X1 Media Player');
 		} else {
 			var title = data["title"];
 			if (!title) title = caller.getTitle(data["file"], true);
-			$('#status').text("Player is running");
-			text = "Currently playing: " + title;
-			$('#playing').text(text);
-			$('#playing').append("<br/><p>")
+			var text = "Playing: ";
+			if (data["artist"]) text += data["artist"] + ' - '; 
+			text += title;
+			$('#status').text(text);
+			$('#playing').text('');
+			if (data["artist"]) $('#playing').append("<b>Artist:</b> " + data["artist"] + "<br/>");
 			if (data["title"]) $('#playing').append("<b>Title:</b> " + data["title"] + "<br/>");
 			if (data["playtime"]) $('#playing').append("<b>Length:</b> " + data["playtime"] + "<br/>");
-			if (data["artist"]) $('#playing').append("<b>Artist:</b> " + data["artist"] + "<br/>");
 			if (data["album"]) $('#playing').append("<b>Album:</b> " + data["album"] + "<br/>");
 			if (data["track"]) $('#playing').append("<b>Track:</b> " + data["track"] + "<br/>");
 			if (data["genre"]) $('#playing').append("<b>Genre:</b> " + data["genre"] + "<br/>");
 			if (data["year"]) $('#playing').append("<b>Year:</b> " + data["year"] + "<br/>");
-			$('#playing').append("</p>")
+			$('#status-info-text').text("Playing: " + title);
 		}
 	});
 	if (loadPlaylist) {
