@@ -64,18 +64,22 @@ Client.prototype.initPage = function() {
 				var command = $(this).attr('value');
 				caller.control(caller.server, null, command, "#message-player");
 			});
-			$('#index-page').live('pageshow', function(event, ui) {
+			$('#player-page').live('pageshow', function(event, ui) {
 				if (!caller.statusInterval) {
 					caller.getStatus(true);
 					caller.statusInterval = window.setInterval("client.getStatus(true);", 5000);
 				}
 			});
-			$('#index-page').live('pagehide', function(event, ui) {
+			$('#player-page').live('pagehide', function(event, ui) {
 				if (caller.statusInterval) {
 					window.clearInterval(caller.statusInterval);
 					caller.statusInterval = null;
 				}
 			});
+			if (!caller.statusInterval) {
+				caller.getStatus(true);
+				caller.statusInterval = window.setInterval("client.getStatus(true);", 5000);
+			}
 		}
 	});
 } 

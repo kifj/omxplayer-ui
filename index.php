@@ -9,7 +9,13 @@ mb_language('uni');
 mb_regex_encoding('UTF-8');
 ob_start('mb_output_handler');
 define('FIFO', '/tmp/omxplayer_fifo');
+define('OMX_SETTINGS','./conf/settings.json');
+define('PLAYLIST_CURRENT', './data/omxplayer_current.txt');
+define('PLAYLIST_QUEUE', './data/omxplayer_playlist.txt');
 setupFifo();
+setupDefaultSettings();
+
+$settings = json_decode(file_get_contents(OMX_SETTINGS));
 
 require_once 'Slim/Slim.php';
 require_once 'audioinfo.php';
@@ -25,21 +31,68 @@ $app->post('/control',  'controlPlayer');
 $app->get('/status', 'getStatus');
 $app->run();
 
-// ------------------------------------------------------------------------------------------------
-// Customization go here
 
 function getOption($key) {
-	// root folder for media files
-	$config['root'] = '/media/upnp';
-	// options to use for omxplayer
-	$config['omx_options'] = '-p -o hdmi';
-	// read ID3 info
-	$config['id3'] = true;
-	return $config[$key];
+	global $settings;
+	return $settings-> { $key };
 }
 
 function getExtensions() {
-	return array("mp3", "m3u", "mpg", "avi", "mov", "mkv", "jpg", "JPG", "png", "flv", "MP3", "wav", "ogg");
+	global $settings;
+	return $settings-> { "extensions" };
+}
+
+function setupDefaultSettings() {
+	if (!file_exists(OMX_SETTINGS)) {
+		if ($settingsFile = fopen(OMX_SETTINGS, 'w')) {
+			$settings = array(
+				'root'=> '/media/upnp', 
+				'id3' => true, 
+				'passthrough' => true,
+				'audio out' => 'hdmi',
+				'deinterlacing' => false,
+				'hw audio decoding' => false,
+				'3d tv' => false,
+				'boost volume' => false,
+				'refresh' => false,
+				'extensions' => array('mp3', 'm3u', 'mpg', 'avi', 'mov', 'mkv', 'jpg', 'JPG', 'png', 'flv', 'MP3', 'wav', 'ogg')
+			);
+			fwrite($settingsFile,json_encode($settings));
+			fclose($settingsFile);
+		}
+	}
+}
+
+function getOmxplayerOptions(){
+	global $settings;
+	$omxplayerOptions = '';
+	foreach ($settings as $key=>$value) {
+		switch ($key){
+			case 'passthrough':
+				if ($value) { $omxplayerOptions .= ' -p '; }
+				break;
+			case 'audio out':
+				$omxplayerOptions .= ' -o '. $value;
+				break;
+			case 'deinterlacing':
+				if ($value) { $omxplayerOptions .= ' -d '; }
+				break;
+			case 'hw audio decoding':
+				if ($value) { $omxplayerOptions .= ' -w '; }
+				break;
+			case '3d tv':
+				if ($value) { $omxplayerOptions .= ' -3 '; }
+				break;
+			case 'boost volume':
+				if ($value) { $omxplayerOptions .= ' --boost-on-downmix '; }
+				break;
+			case 'refresh':
+				if ($value) { $omxplayerOptions .= ' -r '; }
+				break;
+			default:
+		}    
+	}
+	return $omxplayerOptions;
 }
 
 // ------------------------------------------------------------------------------------------------
@@ -48,9 +101,9 @@ function getExtensions() {
 function getServers() {
 	$app = Slim\Slim::getInstance();
 	$log = $app->getLog();
-	$log->info("-> getServers");
-	$app->contentType('application/json');
 	$root_dir = getOption('root');
+	$log->info("-> getServers: " . $root_dir);
+	$app->contentType('application/json');
 	if (is_dir($root_dir) && $handle = opendir($root_dir)) {
 		echo "{\n  \"servers\": [";
 		$is_first = true;
@@ -322,7 +375,7 @@ function play($file) {
 			@unlink (FIFO);
 			posix_mkfifo(FIFO, 0777);
 			chmod(FIFO, 0777);
-			shell_exec ('/usr/local/bin/omx_runner.sh ' . escapeshellarg($file) . ' ' . getOption('omx_options'));
+			shell_exec ('./etc/omx_runner.sh ' . escapeshellarg($file) . ' ' . getOmxplayerOptions());
 			setCurrent($file);
 			remove_file($file);
 			$out = 'Now playing: ' . basename($title);
@@ -371,32 +424,28 @@ function send($command) {
 }
 
 function read_playlist() {
-	$playlist_file = '/tmp/omxplayer_playlist.txt';
-	if (file_exists($playlist_file)) {
-		return file($playlist_file);
+	if (file_exists(PLAYLIST_QUEUE)) {
+		return file(PLAYLIST_QUEUE);
 	} else {
 		return array();
 	}
 }
 
 function getCurrent() {
-	$playcurrent_file = '/tmp/omxplayer_current.txt';
-	if (file_exists($playcurrent_file)) {
-		return file_get_contents($playcurrent_file);
+	if (file_exists(PLAYLIST_CURRENT)) {
+		return file_get_contents(PLAYLIST_CURRENT);
 	} else {
 		return null;
 	}
 }
 
 function setCurrent($file) {
-	$playcurrent_file = '/tmp/omxplayer_current.txt';
 	$root_dir = getOption('root');
-	return file_put_contents($playcurrent_file, str_replace($root_dir . "/", "", $file));	
+	return file_put_contents(PLAYLIST_CURRENT, str_replace($root_dir . "/", "", $file));	
 }
 
 function write_playlist($playlist) {
-	$playlist_file = '/tmp/omxplayer_playlist.txt';
-	return file_put_contents($playlist_file, $playlist);
+	return file_put_contents(PLAYLIST_QUEUE, $playlist);
 }
 
 function add_file($file) {
