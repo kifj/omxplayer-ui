@@ -1,11 +1,7 @@
+DirectoryIndex index.html
 RewriteEngine On
-
-# Some hosts may require you to use the `RewriteBase` directive.
-# If you need to use the `RewriteBase` directive, it should be the
-# absolute physical path to the directory that contains this htaccess file.
-#
 # RewriteBase /
 RewriteBase /omxplayer-ui
-
 RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{SCRIPT_FILENAME} !-d
 RewriteRule ^(.*)$ index.php [QSA,L]

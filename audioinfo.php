@@ -49,7 +49,7 @@ class AudioInfo {
 	 */
 	function AudioInfo() {
 		// Initialize getID3 engine
-		$this->getID3 = new getID3_cached_dbm('db4', '/tmp/getid3_cache.db', '/tmp/getid3_cache.lock');
+		$this->getID3 = new getID3_cached_dbm('db4', './data/getid3_cache.db', './data/getid3_cache.lock');
 		$this->getID3->option_md5_data        = false;
 		$this->getID3->option_md5_data_source = false;
 		$this->getID3->encoding               = 'UTF-8';
