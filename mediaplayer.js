@@ -6,6 +6,7 @@ function Client() {
 	this.controlUrl = baseUrl + "/control";
 	this.statusUrl = baseUrl + "/status";
 	this.playlistUrl = baseUrl + "/playlist";
+	this.settingsUrl = baseUrl + "/settings";
 	
 	$.ajaxSetup({
 		"error": function(jqXHR, textStatus, errorThrown) {
@@ -57,7 +58,7 @@ Client.prototype.initPage = function() {
 			if (!caller.path) {
 				caller.loadServers();
 			} else {
-				caller.browse(caller.server, caller.server + "/" + caller.path, true);
+				caller.browse(caller.server, caller.server + caller.path, true);
 			}
 			$('#browse-page').live('pageshow', function(event, ui) {
 				if (!caller.statusInterval) {
@@ -96,6 +97,15 @@ Client.prototype.initPage = function() {
 				caller.getStatus(true);
 				caller.statusInterval = window.setInterval("client.getStatus(true);", 5000);
 			}
+		} else if (event.target.id == "settings-page") {
+			$('#settings-submit').bind('click', function() {
+				caller.setSettings();
+			});
+			$('#settings-reset').bind('click', function() {
+				caller.getSettings();
+			});
+			$('#settings-page label').css('float', 'right').css('margin-right', '1em').css('font-weight', 'bold').css('margin-top', '1em');
+			caller.getSettings();
 		}
 	});
 } 
@@ -193,6 +203,38 @@ Client.prototype.getPlaylist = function() {
 		});
 		elem.listview('refresh');
 	});
+}
+
+Client.prototype.getSettings = function() {
+	var caller = this;
+	$.getJSON(this.settingsUrl, function(data) {
+		caller.settings = data;
+		$('#root').val(data['root']);
+		$('#passthrough').val(data['passthrough'].toString()).slider('refresh');
+		$('#deinterlacing').val(data['deinterlacing'].toString()).slider('refresh');
+		$('#hw').val(data['hw audio decoding'].toString()).slider('refresh');
+		$('#boost').val(data['boost volume'].toString()).slider('refresh');
+		$('#3dtv').val(data['3d tv'].toString()).slider('refresh');
+		$('#refresh').val(data['refresh'].toString()).slider('refresh');
+		$('#audioout').val(data['audio out']).slider('refresh');
+		$('#id3').val(data['id3'].toString()).slider('refresh');
+	});
+}
+
+Client.prototype.setSettings = function() {
+	var caller = this;
+	caller.settings['root'] = $('#root').val();
+	caller.settings['passthrough'] = $.toBoolean($('#passthrough').val());
+	caller.settings['deinterlacing'] = $.toBoolean($('#deinterlacing').val());
+	caller.settings['hw audio decoding'] = $.toBoolean($('#hw').val());
+	caller.settings['boost volume'] = $.toBoolean($('#boost').val());
+	caller.settings['3d tv'] = $.toBoolean($('#3dtv').val());
+	caller.settings['refresh'] = $.toBoolean($('#refresh').val());
+	caller.settings['audio out'] = $('#audioout').val();
+	caller.settings['id3'] = $.toBoolean($('#id3').val());
+	$.postJSON(this.settingsUrl, caller.settings, function(data) {
+		caller.settings = data;
+	});		
 }
 
 Client.prototype.getParent = function(path) {
@@ -402,4 +444,8 @@ $.postJSON = function(url, data, callback) {
 		'dataType': 'json',
 		'success': callback
 	});
-};
+}
+
+$.toBoolean = function(value) {
+	return (value == 'true') ? true : false;
+}

@@ -1,0 +1,121 @@
+<!DOCTYPE html> 
+<html> 
+<head> 
+	<title>X1 Media Player</title> 
+	<meta name="Description" content="X1 Media Player" />
+	<meta charset="utf-8">
+	<meta name="Author" content="Johannes Beck - mail@johannes-beck.name" />
+	<meta name="Robots" content="index,follow" />
+	<meta name="viewport" content="width=device-width, initial-scale=1"> 
+	<link rel="stylesheet" type="text/css" href="jquery.mobile-1.2.0.min.css" />
+	<link rel="stylesheet" type="text/css" href="jquery.mobile.simpledialog.min.css" /> 
+	<script type="text/javascript" src="jquery-1.8.2.min.js"></script>
+	<script type="text/javascript" src="mediaplayer.js"></script>
+	<script type="text/javascript" src="jquery.mobile-1.2.0.min.js"></script>
+	<script type="text/javascript" src="jquery.json-2.3.min.js"></script>
+	<script type="text/javascript" src="jquery.mobile.simpledialog2.min.js"></script>  
+</head> 
+<body>
+	<div id="settings-page" data-role="page">
+		<script type="text/javascript">
+		$(document).bind('pageinit', function() {
+			client.initPage();
+		});
+		</script>	
+		
+		<div data-role="header" data-position="fixed" data-theme="a">
+			<a id="home" href="index.html" data-icon="home">Servers</a>
+			<h1>X1 Media Player</h1>
+			<a id="player" href="player.html" data-icon="gear" data-theme="b">Player</a>
+		</div>
+
+		<div data-role="content">
+			<div class="ui-grid-a">
+				<div class="ui-block-a"><label for="root">Root directory</label></div>
+				<div class="ui-block-b">
+					<div data-role="fieldcontain">
+						<input type="text" name="root" id="root" value=""  />
+					</div>	
+				</div>
+				<div class="ui-block-a"><label for="audioout">Audio out</label></div>
+				<div class="ui-block-b">
+					<div data-role="fieldcontain">
+						<select name="audioout" id="audioout" data-role="slider">
+							<option value="hdmi">HDMI</option>
+							<option value="local">Local</option>
+						</select> 
+					</div>
+				</div>
+				<div class="ui-block-a"><label for="passthrough">Passthrough</label></div>
+				<div class="ui-block-b">
+					<div data-role="fieldcontain">
+						<select name="passthrough" id="passthrough" data-role="slider">
+							<option value="false">Off</option>
+							<option value="true">On</option>
+						</select> 
+					</div>
+				</div>
+				<div class="ui-block-a"><label for="deinterlacing">Deinterlacing</label></div>
+				<div class="ui-block-b">
+					<div data-role="fieldcontain">
+						<select name="deinterlacing" id="deinterlacing" data-role="slider">
+							<option value="false">Off</option>
+							<option value="true">On</option>
+						</select> 
+					</div>
+				</div>
+				<div class="ui-block-a"><label for="hw">Hardware audio decoding</label></div>
+				<div class="ui-block-b">
+					<div data-role="fieldcontain">
+						<select name="hw" id="hw" data-role="slider">
+							<option value="false">Off</option>
+							<option value="true">On</option>
+						</select> 
+					</div>
+				</div>
+				<div class="ui-block-a"><label for="3dtv">3D TV</label></div>
+				<div class="ui-block-b">
+					<div data-role="fieldcontain">
+						<select name="3dtv" id="3dtv" data-role="slider">
+							<option value="false">Off</option>
+							<option value="true">On</option>
+						</select> 
+					</div>
+				</div>
+				<div class="ui-block-a"><label for="boost">Boost volume</label></div>
+				<div class="ui-block-b">
+					<div data-role="fieldcontain">
+						<select name="boost" id="boost" data-role="slider">
+							<option value="false">Off</option>
+							<option value="true">On</option>
+						</select> 
+					</div>
+				</div>
+				<div class="ui-block-a"><label for="refresh">Refresh</label></div>
+				<div class="ui-block-b">
+					<div data-role="fieldcontain">
+						<select name="refresh" id="refresh" data-role="slider">
+							<option value="false">Off</option>
+							<option value="true">On</option>
+						</select> 
+					</div>
+				</div>
+				<div class="ui-block-a"><label for="id3">Read ID3 tags</label></div>
+				<div class="ui-block-b">
+					<div data-role="fieldcontain">
+						<select name="id3" id="id3" data-role="slider">
+							<option value="false">Off</option>
+							<option value="true">On</option>
+						</select> 
+					</div>
+				</div>
+				<div class="ui-block-a"><a id="settings-submit" data-theme="b" href="#" type="submit">Save</a></div>
+				<div class="ui-block-b"><a id="settings-reset" href="#" type="reset">Reset</a></div>
+			</div>
+		</div>
+		<div data-role="footer" data-position="fixed">
+			<h4><a href="http://www.x1/">X1 Media Player</a> &copy; 2012 </h4>
+		</div> 
+	</div>
+</body>
+</html> 

@@ -29,6 +29,8 @@ $app->get('/servers/:id+',  'getServer');
 $app->post('/servers/:id+',  'controlFile');
 $app->post('/control',  'controlPlayer');
 $app->get('/status', 'getStatus');
+$app->get('/settings', 'getSettings');
+$app->post('/settings',  'setSettings');
 $app->run();
 
 
@@ -150,6 +152,31 @@ function getPlaylist() {
 	$response["Cache-Control"] ="max-age=0"; 
 }
 
+function getSettings() {
+	$app = Slim\Slim::getInstance();
+	$app->contentType('application/json');
+	global $settings;
+	echo json_encode($settings);
+	$response = $app->response();
+	$response["Cache-Control"] ="max-age=0"; 
+}
+
+function setSettings() {
+	$app = Slim\Slim::getInstance();
+	$app->contentType('application/json');
+	$log = $app->getLog();
+	$log->info("-> setSettings:" . OMX_SETTINGS);
+	global $settings;
+	$request = $app->request();
+	$settings = $request->getBody();
+	if ($settingsFile = fopen(OMX_SETTINGS, 'w')) {
+		fwrite($settingsFile,json_encode($settings));
+		fclose($settingsFile);
+	}
+	echo json_encode($settings);
+	$response = $app->response();
+	$response["Cache-Control"] ="max-age=0"; 
+}
 
 function getServer($id) {
 	$app = Slim\Slim::getInstance();
