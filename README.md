@@ -22,14 +22,15 @@ Setup for Nginx: add this location to the site config
 
 Setup (this is my setup, many ways ... you know that already)
  * djmount mounts the media servers to /media/upnp (in /etc/rc.local add /usr/bin/djmount -o allow_other,iocharset=UTF-8 /media/upnp > /dev/null)
- * if you have a different mount point or need different options for omxplayer, edit conf/settings.json
+ * if you have a different mount point or need different options for omxplayer, change the settings in the page or edit conf/settings.json
  * the first level of directories represents the servers, you can set up symlinks to samba or nfs mounts if you like
- * omxplayer-ui needs to be published at the webserver at /omxplayer-ui, or you edit the URL in index.php
+ * omxplayer-ui needs to be published at the webserver at /omxplayer-ui, or you edit the URL in mediaplayer.js
  * the UI should work well on any modern (HTML5 ready) browser, I've tested with Chrome 22, Firefox 16 and Webkit on Android 2.2
 
 Feature set:
  * on the "browse" page:
   * browse through the media servers content (folders)
+  * search (which can be done in djmount with some special ls _search/ filters
   * play file
  * on the "control" page:
   * pause 
@@ -38,8 +39,10 @@ Feature set:
   * stop
   * show MP3 infos from tag
   * show what is currently played
- * search (which can be done in djmount with some special ls _search/ filters
- * external settings file
+ * on the "settings" page:
+  * the root directory
+  * various omxplayer settings
+  * turn on/off the ID3 parsing
 
 Parts of the code were reused from https://github.com/JugglerLKR/omxplayer-web-controls-php, 
 especially the trick how to send keys to a running omxplayer through a FIFO.
@@ -49,5 +52,4 @@ Open features:
   * add and remove items to the playlist (stored in a file)  
   * show playlist on control page   
  * pause in the header bar
- * image viewer
- * settings page
+ * image viewer and diashow
