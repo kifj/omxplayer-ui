@@ -348,6 +348,13 @@ function controlPlayer() {
 				$result = "file not found";
 			}
 			break;
+		case 'clear':
+			if (writePlaylist(array()) === false) {
+				$result = "error";
+			} else {
+				$result = "ok"; 
+			}
+			break;
 		default:
 			$response->status(400);
 			$result = "undefined command";
@@ -489,7 +496,7 @@ function setWatchdog($status) {
 function addFile($file) {
 	$playlist = readPlaylist();
 	array_push($playlist, $file . "\n"); 
-	if (!writePlaylist($playlist)) {
+	if (writePlaylist($playlist) === false) {
 		return "error";
 	} else {
 		return "ok"; 
@@ -499,8 +506,9 @@ function addFile($file) {
 function removeFile($file) {
 	$playlist = readPlaylist();
 	$playlist = array_diff($playlist, array($file . "\n"));
-	$playlist = array_values($playlist);
-	if (!writePlaylist($playlist)) {
+	//$playlist = array_values($playlist);
+	print_r($playlist);
+	if (writePlaylist($playlist) === false) {
 		return "error";
 	} else {
 		return "ok"; 
@@ -519,7 +527,7 @@ function addFolder($folder) {
 	} else {
 		return "error";
 	}
-	if (!writePlaylist($playlist)) {
+	if (writePlaylist($playlist) === false) {
 		return "error";
 	} else {
 		return "ok"; 
@@ -545,7 +553,7 @@ function playFolder($folder) {
 	} else {
 		return "error";
 	}
-	if (!writePlaylist($playlist)) {
+	if (writePlaylist($playlist) === false) {
 		return "error";
 	} else {
 		if ($play_file != null) {
@@ -568,7 +576,7 @@ function removeFolder($folder) {
 		return "error";
 	}
 	$playlist = array_values($playlist);
-	if (!writePlaylist($playlist)) {
+	if (writePlaylist($playlist) === false) {
 		return "error";
 	} else {
 		return "ok"; 

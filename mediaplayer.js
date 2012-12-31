@@ -50,9 +50,11 @@ Client.prototype.initPage = function() {
 	var caller = this;
 	$("div[data-role*='page']").live('pageshow', function(event, ui) {
 		if (event.target.id == "browse-page") {
+			$('#home').unbind('click');
 			$('#home').bind('click', function() {
 				caller.loadServers();		
 			});
+			$('#search').unbind('click');
 			$('#search').bind('click', function() {
 				caller.search($('#search-text').val());		
 			});
@@ -78,6 +80,7 @@ Client.prototype.initPage = function() {
 				caller.statusInterval = window.setInterval("client.getStatus(false);", 5000);
 			}
 		} else if (event.target.id == "player-page") {
+			$('.control').unbind('click');
 			$('.control').bind('click', function() {
 				var command = $(this).attr('value');
 				caller.control(caller.server, null, command, "#message-player");
@@ -94,15 +97,17 @@ Client.prototype.initPage = function() {
 					caller.statusInterval = null;
 				}
 			});
+			$('#clear-playlist').unbind('click');
 			$('#clear-playlist').bind('click', function() {
-				//TODO send to server
-				$('#playlist').empty().listview('refresh');
+				caller.control(caller.server, null, 'clear', "#message-player");
 				
 			});
+			$('#play-playlist').unbind('click');
 			$('#play-playlist').bind('click', function() {
 				var list = $('#playlist li');
-				if (list.length > 0) {
-					var file = $('a', list.first()).attr('value');
+				if (!caller.running && list.length > 0) {
+					var file = list.first().attr('href');
+					caller.control(caller.server, file, 'remove', "#message-player");
 					caller.control(caller.server, file, 'play', "#message-player");
 				}
 			});
@@ -111,9 +116,11 @@ Client.prototype.initPage = function() {
 				caller.statusInterval = window.setInterval("client.getStatus(true);", 5000);
 			}
 		} else if (event.target.id == "settings-page") {
+			$('#settings-submit').unbind('click');
 			$('#settings-submit').bind('click', function() {
 				caller.setSettings();
 			});
+			$('#settings-reset').unbind('click');
 			$('#settings-reset').bind('click', function() {
 				caller.getSettings();
 			});
@@ -211,8 +218,8 @@ Client.prototype.getPlaylist = function() {
 	$.getJSON(this.playlistUrl, function(data) {
 		elem.empty();
 		$.each(data["playlist"], function(key, item) {
-			elem.append('<li data-icon="check" id="' + key + '"><a class="file" href="#" value="' + item["link"] + '">' + 
-				caller.getTitle(item["file"], true) + '</a></li>');
+			elem.append('<li data-icon="check" id="' + key + '" href="' + item["link"] + '">' + 
+				caller.getTitle(item["file"], true) + '</li>');
 		});
 		elem.listview('refresh');
 		var hasPlaylist = data["playlist"].length;
