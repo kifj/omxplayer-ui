@@ -11,6 +11,7 @@ function Client() {
 	$.ajaxSetup({
 		"error": function(jqXHR, textStatus, errorThrown) {
 			$.mobile.loading('hide');
+			$.mobile.loading('hide');
 			if (console) console.log("ajax call failed: " + textStatus + " - " + jqXHR.status + " - " + jqXHR.responseText);
 		}
 	});
@@ -91,6 +92,18 @@ Client.prototype.initPage = function() {
 				if (caller.statusInterval) {
 					window.clearInterval(caller.statusInterval);
 					caller.statusInterval = null;
+				}
+			});
+			$('#clear-playlist').bind('click', function() {
+				//TODO send to server
+				$('#playlist').empty().listview('refresh');
+				
+			});
+			$('#play-playlist').bind('click', function() {
+				var list = $('#playlist li');
+				if (list.length > 0) {
+					var file = $('a', list.first()).attr('value');
+					caller.control(caller.server, file, 'play', "#message-player");
 				}
 			});
 			if (!caller.statusInterval) {
@@ -195,13 +208,15 @@ Client.prototype.getStatus = function(loadPlaylist) {
 Client.prototype.getPlaylist = function() {
 	var caller = this;
 	var elem = $('#playlist');
-	elem.empty();
 	$.getJSON(this.playlistUrl, function(data) {
+		elem.empty();
 		$.each(data["playlist"], function(key, item) {
 			elem.append('<li data-icon="check" id="' + key + '"><a class="file" href="#" value="' + item["link"] + '">' + 
 				caller.getTitle(item["file"], true) + '</a></li>');
 		});
 		elem.listview('refresh');
+		var hasPlaylist = data["playlist"].length;
+		$('#playlist-container').css('display', hasPlaylist ? 'inherit' : 'none');
 	});
 }
 

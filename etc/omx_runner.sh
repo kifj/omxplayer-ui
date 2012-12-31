@@ -2,8 +2,9 @@
 PLAY_FILE=$1
 shift
 OMXPLAYER_OPTIONS=$@
-OMXPLAYER_CURRENT="../data/omxplayer_current.txt"
-OMXPLAYER_PLAYLIST="../data/omxplayer_playlist.txt"
+DIR=$(dirname $0)
+OMXPLAYER_CURRENT="$DIR/../data/omxplayer_current.txt"
+OMXPLAYER_PLAYLIST="$DIR/../data/omxplayer_playlist.m3u"
 
 if [ "${PLAY_FILE##*.}" = "m3u" ]; then
 	PLAY_LIST=$(grep -v '^#.*$' $PLAY_FILE)

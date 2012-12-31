@@ -11,11 +11,10 @@ ob_start('mb_output_handler');
 define('FIFO', '/tmp/omxplayer_fifo');
 define('OMX_SETTINGS','./conf/settings.json');
 define('PLAYLIST_CURRENT', './data/omxplayer_current.txt');
-define('PLAYLIST_QUEUE', './data/omxplayer_playlist.txt');
+define('PLAYLIST_QUEUE', './data/omxplayer_playlist.m3u');
+define('OMX_WATCHDOG', './data/omxplayer_watchdog');
 setupFifo();
-setupDefaultSettings();
-
-$settings = json_decode(file_get_contents(OMX_SETTINGS));
+$settings = setupOptions();
 
 require_once 'Slim/Slim.php';
 require_once 'audioinfo.php';
@@ -31,6 +30,7 @@ $app->post('/control',  'controlPlayer');
 $app->get('/status', 'getStatus');
 $app->get('/settings', 'getSettings');
 $app->post('/settings',  'setSettings');
+$app->get('/watchdog', 'watchdog');
 $app->run();
 
 
@@ -39,12 +39,7 @@ function getOption($key) {
 	return $settings-> { $key };
 }
 
-function getExtensions() {
-	global $settings;
-	return $settings-> { "extensions" };
-}
-
-function setupDefaultSettings() {
+function setupOptions() {
 	if (!file_exists(OMX_SETTINGS)) {
 		if ($settingsFile = fopen(OMX_SETTINGS, 'w')) {
 			$settings = array(
@@ -62,7 +57,10 @@ function setupDefaultSettings() {
 			fwrite($settingsFile,json_encode($settings));
 			fclose($settingsFile);
 		}
+	} else {
+		$settings = json_decode(file_get_contents(OMX_SETTINGS));
 	}
+	return $settings;
 }
 
 function getOmxplayerOptions(){
@@ -99,55 +97,48 @@ function getOmxplayerOptions(){
 
 // ------------------------------------------------------------------------------------------------
 
-
 function getServers() {
 	$app = Slim\Slim::getInstance();
 	$log = $app->getLog();
 	$root_dir = getOption('root');
 	$log->info("-> getServers: " . $root_dir);
 	$app->contentType('application/json');
+	$response = $app->response();
 	if (is_dir($root_dir) && $handle = opendir($root_dir)) {
-		echo "{\n  \"servers\": [";
-		$is_first = true;
+		$body = array();
+		$items = array();
 		while (false !== ($file = readdir($handle))) {
 			if (!startsWith($file, '.')  && is_dir("$root_dir/$file")) {
-				if ($is_first) {
-					$is_first = false;
-				} else {
-					echo ",";
-				}
-				echo "\n    { \"server\": " . json_encode($file) . " }";
+				$item = array();
+				$item['server'] = $file;
+				$items[] = $item;
 			}
 		}
 		closedir($handle);
-		echo "\n  ]\n}\n";
-		$response = $app->response();
+		$body['servers'] = $items; 
+		echo json_encode($body);
 		$response["Cache-Control"] ="max-age=600"; 
 	} else {
-		$app->response()->status(404);
+		$response->status(404);
 	}
 }
 
 function getPlaylist() {
 	$app = Slim\Slim::getInstance();
-	//$log = $app->getLog();
-	//$log->info("-> getPlaylist");
 	$app->contentType('application/json');
-	$playlist = read_playlist();
-	echo "{\n  \"playlist\": [";
-	$is_first = true;
+	$playlist = readPlaylist();
+	$body = array();
+	$items = array();
 	$root_dir = getOption('root');
 	foreach ($playlist as $file) {
-		if ($is_first) {
-			$is_first = false;
-		} else {
-			echo ",";
-		}
 		$file = str_replace($root_dir . "/", "", trim($file));
-		$path = explode("/", $file);
-		echo "\n    { \"file\": " . json_encode(end($path)) . ", \"link\": " . json_encode($file) . " }";
+		$item = array();
+		$item["file"] = end(explode("/", $file));
+		$item["link"] = $file;
+		$items[] = $item;
 	}
-	echo "\n  ]\n}\n";
+	$body['playlist'] = $items; 
+	echo json_encode($body);
 	$response = $app->response();
 	$response["Cache-Control"] ="max-age=0"; 
 }
@@ -175,12 +166,12 @@ function setSettings() {
 	}
 	echo json_encode($settings);
 	$response = $app->response();
-	$response["Cache-Control"] ="max-age=0"; 
 }
 
 function getServer($id) {
 	$app = Slim\Slim::getInstance();
 	$app->contentType('application/json');
+	$response = $app->response();
 	$server = $id[0];
 	$path = implode("/",array_slice($id, 1));
 	if (!$path) { 
@@ -190,7 +181,7 @@ function getServer($id) {
 	}
 	$id = implode("/", $id);
 	$root_dir = getOption('root') . '/' . $id;
-	$extensions = getExtensions();
+	$extensions = getOption('extensions');
 	echo "{\n  \"server\": \"$server\",\n";
 	echo "  \"path\": \"" . encodePath($path) . "\"";
 	if (is_dir($root_dir) && $handle = opendir($root_dir)) {
@@ -223,10 +214,9 @@ function getServer($id) {
 		closedir($handle);
 		echo "\n  ],";
 		echo "\n  \"search\": " . boolString($has_search);
-		$response = $app->response();
 		$response["Cache-Control"] ="max-age=600"; 
 	} else {
-		$app->response()->status(404);
+		$response->status(404);
 	}
 	echo "\n}\n";
 }
@@ -246,6 +236,7 @@ function controlFile($id) {
 
 	$request = $app->request();
 	$control = $request->getBody();
+	$response = $app->response();
 	$result = "error";
 	if (is_file($file)) {
 		switch ($control["command"]) {
@@ -253,38 +244,41 @@ function controlFile($id) {
 				$result = play($file);
 				break;
 			case "add":				
-				$result = add_file($file);
+				$result = addFile($file);
 				break;
 			case "remove":
-				$result = remove_file($file);
+				$result = removeFile($file);
 				break;
 			default:
 				$result = "illegal command";
-				$app->response()->status(400);
+				$response->status(400);
 				break;
 		}
 	} else if (is_dir($file)) {
 		switch ($control["command"]) {
 			case "play":
-				$result = play_folder($file);;
+				$result = playFolder($file);;
 				break;
 			case "add":
-				$result = add_folder($file);
+				$result = addFolder($file);
 				break;
 			case "remove":
-				$result = remove_folder($file);
+				$result = removeFolder($file);
 				break;
 			case "search":
 				return search($server, "/_search/" . $control["value"]);
 			default:
 				$result = "illegal command";
-				$app->response()->status(400);
+				$response->status(400);
 				break;
 		}
 	} else {
-		$app->response()->status(404);
+		$response->status(404);
 	}
-	echo "{ \"command\": \"" . $control["command"] . "\", \"result\": \"" . $result . "\" }";
+	$body = array();
+	$body['command'] = $control["command"];
+	$body['result'] = $result;
+	echo json_encode($body);
 }
 
 function controlPlayer() {
@@ -292,9 +286,11 @@ function controlPlayer() {
 	$app->contentType('application/json');
 	$request = $app->request();
 	$control = $request->getBody();
+	$response = $app->response();
 	switch ($control["command"]) {
 		case 'stop';
 			$result = send('q');
+			setWatchdog('STOP');
 			break;
 		case 'pause';
 			$result = send('p');
@@ -353,11 +349,14 @@ function controlPlayer() {
 			}
 			break;
 		default:
-			$app->response()->status(400);
+			$response->status(400);
 			$result = "undefined command";
 			break;
 	}
-	echo "{ \"command\": \"" . $control["command"] . "\", \"result\": \"" . $result . "\" }";
+	$body = array();
+	$body['command'] = $control["command"];
+	$body['result'] = $result;
+	echo json_encode($body);
 }
 
 function startsWith($haystack,$needle,$case=false) {
@@ -402,12 +401,14 @@ function play($file) {
 			@unlink (FIFO);
 			posix_mkfifo(FIFO, 0777);
 			chmod(FIFO, 0777);
-			shell_exec ('./etc/omx_runner.sh ' . escapeshellarg($file) . ' ' . getOmxplayerOptions());
+			shell_exec('./etc/omx_runner.sh ' . escapeshellarg($file) . ' ' . getOmxplayerOptions());
 			setCurrent($file);
-			remove_file($file);
+			removeFile($file);
+			setWatchdog('PLAY');
 			$out = 'Now playing: ' . basename($title);
 		} else {
-			$out = 'Player is already runnning';
+			send('q');
+			$out = play($file);
 		}
 	}
 	return $out;
@@ -416,11 +417,11 @@ function play($file) {
 function setupFifo() {
 	if (!file_exists(FIFO)) {
 		if (!posix_mkfifo(FIFO, 0777)) {
-			echo 'can\'t create '.FIFO.' - please fix persmissions!<br>';
+			echo 'can\'t create ' . FIFO . ' - please fix permissions!';
 			die();
 		}
-		if (!chmod(FIFO,0777)) {
-			echo 'can\'t change permissions for '.FIFO.' - please fix persmissions!<br>';
+		if (!chmod(FIFO, 0777)) {
+			echo 'can\'t change permissions for ' . FIFO . ' - please fix permissions!';
 			die();
 		}
 	}
@@ -450,7 +451,7 @@ function send($command) {
 	return $out;
 }
 
-function read_playlist() {
+function readPlaylist() {
 	if (file_exists(PLAYLIST_QUEUE)) {
 		return file(PLAYLIST_QUEUE);
 	} else {
@@ -471,33 +472,43 @@ function setCurrent($file) {
 	return file_put_contents(PLAYLIST_CURRENT, str_replace($root_dir . "/", "", $file));	
 }
 
-function write_playlist($playlist) {
+function writePlaylist($playlist) {
 	return file_put_contents(PLAYLIST_QUEUE, $playlist);
 }
 
-function add_file($file) {
-	$playlist = read_playlist();
+function getWatchdog() {
+	$watchdog = file_get_contents(OMX_WATCHDOG);	
+	if (!$watchdog) $watchdog = 'STOPPED';
+	return $watchdog;
+}
+
+function setWatchdog($status) {
+	return file_put_contents(OMX_WATCHDOG, $status);	
+}
+
+function addFile($file) {
+	$playlist = readPlaylist();
 	array_push($playlist, $file . "\n"); 
-	if (!write_playlist($playlist)) {
+	if (!writePlaylist($playlist)) {
 		return "error";
 	} else {
 		return "ok"; 
 	}
 }
 
-function remove_file($file) {
-	$playlist = read_playlist();
+function removeFile($file) {
+	$playlist = readPlaylist();
 	$playlist = array_diff($playlist, array($file . "\n"));
 	$playlist = array_values($playlist);
-	if (!write_playlist($playlist)) {
+	if (!writePlaylist($playlist)) {
 		return "error";
 	} else {
 		return "ok"; 
 	}
 }
 
-function add_folder($folder) {
-	$playlist = read_playlist();
+function addFolder($folder) {
+	$playlist = readPlaylist();
 	if ($handle = opendir($folder)) {
 		while (false !== ($file = readdir($handle))) {
 			if (!startsWith($file, '.')  && is_file("$folder/$file")) {
@@ -508,14 +519,14 @@ function add_folder($folder) {
 	} else {
 		return "error";
 	}
-	if (!write_playlist($playlist)) {
+	if (!writePlaylist($playlist)) {
 		return "error";
 	} else {
 		return "ok"; 
 	}
 }
 
-function play_folder($folder) {
+function playFolder($folder) {
 	$app = Slim\Slim::getInstance();
 	$log = $app->getLog();
 	$log->info("-> playFolder: $folder");
@@ -534,7 +545,7 @@ function play_folder($folder) {
 	} else {
 		return "error";
 	}
-	if (!write_playlist($playlist)) {
+	if (!writePlaylist($playlist)) {
 		return "error";
 	} else {
 		if ($play_file != null) {
@@ -544,9 +555,8 @@ function play_folder($folder) {
 	}
 }
 
-
-function remove_folder($folder) {
-	$playlist = read_playlist();
+function removeFolder($folder) {
+	$playlist = readPlaylist();
 	if ($handle = opendir($folder)) {
 		while (false !== ($file = readdir($handle))) {
 			if (!startsWith($file, '.')  && is_file("$folder/$file")) {
@@ -558,20 +568,19 @@ function remove_folder($folder) {
 		return "error";
 	}
 	$playlist = array_values($playlist);
-	if (!write_playlist($playlist)) {
+	if (!writePlaylist($playlist)) {
 		return "error";
 	} else {
 		return "ok"; 
 	}
 }
 
-
 function search($server, $path) {
 	$id = $server . $path;
 	$app = Slim\Slim::getInstance();
 	$app->contentType('application/json');
 	$root_dir = getOption('root') . "/" . $id;
-	$extensions = getExtensions();
+	$extensions = getOption('extensions');
 	echo "{\n  \"server\": \"$server\",\n";
 	echo "  \"path\": \"" . encodePath($path) . "\"";
 
@@ -614,9 +623,9 @@ function getStatus() {
 	//$log = $app->getLog();
 	//$log->info("-> getStatus " + $playing);
 	$root_dir = getOption('root');
-	echo "{\n";
 	exec('pgrep omxplayer', $pids);
-	echo "  \"running\": " . (empty($pids) ? "false" : "true");
+	$body = array();
+	$body['running'] = (empty($pids) ? false : true);
 	if ($playing && !empty($pids)) {
 		$playing = trim($playing);
 		$file = str_replace($root_dir . "/", "", $playing);
@@ -625,47 +634,94 @@ function getStatus() {
 			$audioinfo = $au->Info($root_dir . "/" . $playing);
 			//print_r($audioinfo);
 			if (isset($audioinfo['comments']['artist'])) {
-				echo ",\n  \"artist\": " . json_encode($audioinfo['comments']['artist'][0]);
+				$body['artist'] = $audioinfo['comments']['artist'][0];
 			}
 			if (isset($audioinfo['comments']['title'])) {
-				echo ",\n  \"title\": " . json_encode($audioinfo['comments']['title'][0]);
+				$body['title'] = $audioinfo['comments']['title'][0];
 			}
 			if (isset($audioinfo['comments']['album'])) {
-				echo ",\n  \"album\": " . json_encode($audioinfo['comments']['album'][0]);
+				$body['album'] = $audioinfo['comments']['album'][0];
 			}
 			if (isset($audioinfo['comments']['genre'])) {
-				echo ",\n  \"genre\": " . json_encode($audioinfo['comments']['genre'][0]);
+				$body['genre'] = $audioinfo['comments']['genre'][0];
 			}
 			if (isset($audioinfo['comments']['track'])) {
-				echo ",\n  \"track\": " . json_encode($audioinfo['comments']['track'][0]);
+				$body['track'] = $audioinfo['comments']['track'][0];
 			}
 			if (isset($audioinfo['comments']['year'])) {
-				echo ",\n  \"year\": " . json_encode($audioinfo['comments']['year'][0]);
+				$body['year'] = $audioinfo['comments']['year'][0];
 			}
 			if (isset($audioinfo["playtime_string"])) {
-				echo ",\n  \"playtime\": " . json_encode($audioinfo["playtime_string"]);
+				$body['playtime'] = $audioinfo["playtime_string"];
 			}
 			if (isset($audioinfo["format_name"])) {
-				echo ",\n  \"format\": " . json_encode($audioinfo["format_name"]);
+				$body['format'] = $audioinfo["format_name"];
 			}
 			if (isset($audioinfo["bitrate_mode"])) {
-				echo ",\n  \"bitrate_mode\": " . json_encode($audioinfo["bitrate_mode"]);
+				$body['bitrate_mode'] = $audioinfo["bitrate_mode"];
 			}
 			if (isset($audioinfo["bitrate"])) {
-				echo ",\n  \"bitrate\": " . json_encode($audioinfo["bitrate"]);
+				$body['bitrate'] = $audioinfo["bitrate"];
 			}
 			if (isset($audioinfo['video']['resolution_x']) && isset($audioinfo['video']['resolution_y'])) {
-				echo ",\n  \"resolution\": " . json_encode($audioinfo['video']['resolution_x'] . "x" . $audioinfo['video']['resolution_y']);
+				$body['resolution'] = $audioinfo['video']['resolution_x'] . "x" . $audioinfo['video']['resolution_y'];
 			}
 		}
 		$file = str_replace($root_dir . "/", "", $playing);
-		$path = explode("/", $playing);
-		echo ",\n  \"file\": " . json_encode(end($path));
-		echo ",\n  \"link\": " . json_encode($file);
+		$body['file'] = end(explode("/", $playing));
+		$body['link'] = $file;
 	}
-	echo "\n}";
+	echo json_encode($body);
 	$response = $app->response();
 	$response["Cache-Control"] ="max-age=5"; 
+}
+
+function watchdog() {
+	$app = Slim\Slim::getInstance();
+	$app->contentType('application/json');
+	$watchdog = getWatchdog();
+	$newWatchdog = $watchdog;
+	$body = array();
+	switch ($watchdog) {
+		case 'PLAY':
+			$playlist = readPlaylist();
+			exec('pgrep omxplayer', $pids);
+			if (sizeof($playlist) > 0) {
+				if (empty($pids)) {
+					// play next from playlist
+					$file = trim($playlist[0]);
+					$playlist = array_slice($playlist, 1);
+					if (writePlaylist($playlist)) {
+						$out = play($file);
+						$body['message'] = $out;
+					}
+				}
+			} else {
+				if (empty($pids)) {
+					// out of playlist and player stopped
+					$newWatchdog = 'STOPPED';
+				}
+			}
+			break;
+		case 'STOP':
+			$newWatchdog = 'STOPPED';
+			break;
+		default:
+			break;
+	}
+	if ($watchdog != $newWatchdog) {
+		setWatchdog($newWatchdog);
+	}
+	$body['watchdog'] = $newWatchdog;
+	echo json_encode($body);
+	$response = $app->response();
+	$response["Cache-Control"] ="max-age=5"; 
+	$log = $app->getLog();
+	$log->info("-> watchdog " . $newWatchdog);
+	if ($newWatchdog == 'PLAY') {
+		usleep(500000);
+		//watchdog();
+	}
 }
 
 ?>
