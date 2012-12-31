@@ -25,6 +25,7 @@ Setup (this is my setup, many ways ... you know that already)
  * if you have a different mount point or need different options for omxplayer, change the settings in the page or edit conf/settings.json
  * the first level of directories represents the servers, you can set up symlinks to samba or nfs mounts if you like
  * omxplayer-ui needs to be published at the webserver at /omxplayer-ui, or you edit the URL in mediaplayer.js
+ * ensure that the directories "data" and "conf" are writable by the webserver (chmod -R 664 data conf ; chgrp -R www-data data conf)
  * the UI should work well on any modern (HTML5 ready) browser, I've tested with Chrome 22, Firefox 16 and Webkit on Android 2.2
 
 Feature set:
