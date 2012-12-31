@@ -507,7 +507,6 @@ function removeFile($file) {
 	$playlist = readPlaylist();
 	$playlist = array_diff($playlist, array($file . "\n"));
 	//$playlist = array_values($playlist);
-	print_r($playlist);
 	if (writePlaylist($playlist) === false) {
 		return "error";
 	} else {
