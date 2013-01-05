@@ -9,6 +9,7 @@ Prerequisites (this is my setup, many ways lead to Rome)
  * omxplayer
  * php-cgi 
  * apache2-mpm-prefork (any webserver which can run PHP scripts will do, I'm used to apache2)
+ * curl
  * djmount (optional)
 
 Setup for Nginx: add this location to the site config
@@ -33,6 +34,7 @@ Feature set:
   * browse through the media servers content (folders)
   * search (which can be done in djmount with some special ls _search/ filters
   * play file
+  * add and remove items to the playlist
  * on the "control" page:
   * pause 
   * volume up and down
@@ -40,6 +42,7 @@ Feature set:
   * stop
   * show MP3 infos from tag
   * show what is currently played
+  * show playlist
  * on the "settings" page:
   * the root directory
   * various omxplayer settings
@@ -49,8 +52,7 @@ Parts of the code were reused from https://github.com/JugglerLKR/omxplayer-web-c
 especially the trick how to send keys to a running omxplayer through a FIFO.
 
 Open features:
- * a playlist (you can only play one file currently)
-  * add and remove items to the playlist (stored in a file)  
-  * show playlist on control page   
+ * remove and reorder entries in playlist on control page
+ * next track on control page
  * pause in the header bar
  * image viewer and diashow

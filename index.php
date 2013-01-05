@@ -403,7 +403,7 @@ function play($file) {
 		//shell_exec ('cp ' . escapeshellarg($file) . ' /tmp/fim_current');		
 		$out = 'Not implemented';
 	} else {
-		exec('pgrep omxplayer', $pids);
+		exec('pgrep omxplayer.bin', $pids);
 		if (empty($pids)) {
 			@unlink (FIFO);
 			posix_mkfifo(FIFO, 0777);
@@ -436,7 +436,7 @@ function setupFifo() {
 
 function send($command) {
 	$out = 'error';
-	exec('pgrep omxplayer', $pids);
+	exec('pgrep omxplayer.bin', $pids);
 	if (!empty($pids)) {
 		if (is_writable(FIFO)) {
 			if ($fifo = fopen(FIFO, 'w')) {
@@ -630,7 +630,7 @@ function getStatus() {
 	//$log = $app->getLog();
 	//$log->info("-> getStatus " + $playing);
 	$root_dir = getOption('root');
-	exec('pgrep omxplayer', $pids);
+	exec('pgrep omxplayer.bin', $pids);
 	$body = array();
 	$body['running'] = (empty($pids) ? false : true);
 	if ($playing && !empty($pids)) {
@@ -686,27 +686,34 @@ function getStatus() {
 function watchdog() {
 	$app = Slim\Slim::getInstance();
 	$app->contentType('application/json');
+	$log = $app->getLog();
 	$watchdog = getWatchdog();
 	$newWatchdog = $watchdog;
 	$body = array();
 	switch ($watchdog) {
 		case 'PLAY':
 			$playlist = readPlaylist();
-			exec('pgrep omxplayer', $pids);
+			exec('pgrep omxplayer.bin', $pids);
 			if (sizeof($playlist) > 0) {
 				if (empty($pids)) {
 					// play next from playlist
 					$file = trim($playlist[0]);
+					$log->info("-> watchdog stopped, play " . $file);
 					$playlist = array_slice($playlist, 1);
-					if (writePlaylist($playlist)) {
+					if (writePlaylist($playlist) !== false) {
 						$out = play($file);
 						$body['message'] = $out;
 					}
+				} else {
+					$log->info("-> watchdog playing, wait for end");
 				}
 			} else {
 				if (empty($pids)) {
 					// out of playlist and player stopped
 					$newWatchdog = 'STOPPED';
+					$log->info("-> watchdog stopped, no more tracks queued");
+				} else {
+					$log->info("-> watchdog still playing, no more tracks queued");
 				}
 			}
 			break;
@@ -722,13 +729,38 @@ function watchdog() {
 	$body['watchdog'] = $newWatchdog;
 	echo json_encode($body);
 	$response = $app->response();
-	$response["Cache-Control"] ="max-age=5"; 
-	$log = $app->getLog();
-	$log->info("-> watchdog " . $newWatchdog);
+	$response["Cache-Control"] ="max-age=5"; 	
+	$log->info("-> watchdog, status " . $newWatchdog);
+	/*
+	//polling takes too much CPU time
 	if ($newWatchdog == 'PLAY') {
-		usleep(500000);
-		//watchdog();
+		usleep(1000000);
+		wakeWatchdog('http://localhost/omxplayer-ui/watchdog');
 	}
+	*/
+}
+
+function wakeWatchdog($url) {
+    $parts=parse_url($url);
+
+    $fp = fsockopen($parts['host'], 
+        isset($parts['port'])?$parts['port']:80, 
+        $errno, $errstr, 30);
+
+    if ($fp == 0 ) {
+		$app = Slim\Slim::getInstance();
+		$log = $app->getLog();
+		$log->warn("Couldn't open a socket to " . $url);
+		return;
+	}
+
+    $out = "GET ".$parts['path']." HTTP/1.1\r\n";
+    $out.= "Host: ".$parts['host']."\r\n";
+	$out.= "Content-Type: application/json\r\n";
+    $out.= "Connection: Close\r\n\r\n";
+	//$log->info("Sending " . $out);
+    fwrite($fp, $out);
+    fclose($fp);
 }
 
 ?>
