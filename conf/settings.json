@@ -1,1 +1,12 @@
-{"root":"\/media\/upnp","id3":true,"passthrough":true,"audio out":"hdmi","deinterlacing":false,"hw audio decoding":false,"3d tv":false,"boost volume":false,"refresh":false}
+{
+ "root":"\/media\/upnp",
+ "id3":true,
+ "passthrough":true,
+ "audio out":"hdmi",
+ "deinterlacing":false,
+ "hw audio decoding":false,
+ "3d tv":false,
+ "boost volume":false,
+ "refresh":false,
+ "extensions": [ "mp3", "m3u", "mpg", "avi", "mov", "mkv", "jpg", "JPG", "png", "flv", "MP3", "wav", "ogg" ]
+}

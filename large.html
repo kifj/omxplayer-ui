@@ -1,0 +1,79 @@
+<!DOCTYPE html> 
+<html> 
+<head> 
+	<title>X1 Media Player</title> 
+	<meta name="Description" content="X1 Media Player" />
+	<meta charset="utf-8">
+	<meta name="Author" content="Johannes Beck - mail@johannes-beck.name" />
+	<meta name="Robots" content="index,follow" />
+	<meta name="viewport" content="width=device-width, initial-scale=1"> 
+	<link rel="stylesheet" type="text/css" href="jquery.mobile-1.2.0.min.css" />
+	<link rel="stylesheet" type="text/css" href="jquery.mobile.simpledialog.min.css" /> 
+	<script type="text/javascript" src="jquery-1.8.2.min.js"></script>
+	<script type="text/javascript" src="mediaplayer.js"></script>
+	<script type="text/javascript" src="jquery.mobile-1.2.0.min.js"></script>
+	<script type="text/javascript" src="jquery.json-2.3.min.js"></script>
+	<script type="text/javascript" src="jquery.mobile.simpledialog2.min.js"></script>  
+</head> 
+<body>
+	<div id="large-page" data-role="page">
+		<script type="text/javascript">
+		$(document).bind('pageinit', function() {
+			client.initPage();
+		});
+		</script>	
+		
+		<div data-role="header" data-position="fixed" data-theme="a">
+			<a id="home" href="#" data-icon="home">Servers</a>		
+			<h1 id="status-info-text">X1 Media Player</h1>
+			<a id="settings" href="prefs.html" data-icon="gear" data-theme="b">Settings</a>
+		</div>
+
+		<div data-role="content">
+		
+			<div class="ui-grid-a" style="padding: 20px;">
+				<div class="ui-block-a" style="padding-right: 10px;">
+					<h1 id="title">Media Servers</h1>
+					<ul id="servers" data-role="listview" data-inset="true" data-filter="true">
+					</ul>
+					<div id="search-box" data-role="fieldcontain">
+						<input type="text" data-mini="true" id="search-text"/>
+						<a id="search" href="#" data-role="button" data-inline="true" data-icon="search" >Search</a>
+					</div>
+					<div data-inline="true" data-position-to="window" data-role="popup" data-history="false" data-overlay-theme="a" data-theme="e" class="ui-content" id="message-browser" data-transition="flip">
+					</div>
+				</div>
+				<div class="ui-block-b" style="padding-left: 10px; padding-top: 60px;">
+					<div data-role="collapsible" data-collapsed="true" data-theme="b" data-content-theme="d">
+						<h3><span id="status">Remote control</span></h3>
+						<p id="playing"></p>
+					</div>
+					<div class="ui-grid-a">
+						<div class="ui-block-a"><button class="control" type="v" value="pause">Pause</button></div>
+						<div class="ui-block-b"><button class="control" type="v" data-theme="b" value="stop">Stop</button></div>
+						<div class="ui-block-a"><button class="control" type="button" data-theme="c" value="seek-30">-30 sec</button></div>	   
+						<div class="ui-block-b"><button class="control" type="button" data-theme="c" value="volup">Volume Up</button></div>	   
+						<div class="ui-block-a"><button class="control" type="button" data-theme="c" value="seek30">+30 sec</button></div>
+						<div class="ui-block-b"><button class="control" type="button" data-theme="c" value="voldown">Volume Down</button></div>
+					</div>
+					<div id="playlist-container" data-role="collapsible" data-collapsed="true" data-theme="d" data-content-theme="d">
+						<h3>Playlist</h3>
+						<ul id="playlist" data-role="listview">
+						</ul>	
+						<div class="ui-grid-a  ui-listview " style="border-top: 1px solid #BBBBBB; margin-top: 0.7em;">
+							<div class="ui-block-a"><button id="play-playlist" type="button" data-theme="b">Play</button></div>	   
+							<div class="ui-block-b"><button id="clear-playlist" type="button" data-theme="c">Clear</button></div>	   
+						</div>
+					</div>
+					<div data-inline="true" data-role="popup" data-position-to="window" data-history="false" id="message-player" data-overlay-theme="a" data-theme="e" class="ui-content" data-transition="flip">
+					</div>
+				</div>
+			</div>
+		</div>
+			
+		<div data-role="footer" data-position="fixed">
+			<h4><a href="http://www.x1/">X1 Media Player</a> &copy; 2012 </h4>
+		</div> 
+	</div>
+</body>
+</html> 

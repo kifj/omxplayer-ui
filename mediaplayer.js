@@ -1,16 +1,15 @@
 var client = new Client();
 
 function Client() {
-	var baseUrl = "/omxplayer-ui";
-	this.serversUrl = baseUrl + "/servers";
-	this.controlUrl = baseUrl + "/control";
-	this.statusUrl = baseUrl + "/status";
-	this.playlistUrl = baseUrl + "/playlist";
-	this.settingsUrl = baseUrl + "/settings";
+	this.baseUrl = "/omxplayer-ui";
+	this.serversUrl = this.baseUrl + "/servers";
+	this.controlUrl = this.baseUrl + "/control";
+	this.statusUrl = this.baseUrl + "/status";
+	this.playlistUrl = this.baseUrl + "/playlist";
+	this.settingsUrl = this.baseUrl + "/settings";
 	
 	$.ajaxSetup({
 		"error": function(jqXHR, textStatus, errorThrown) {
-			$.mobile.loading('hide');
 			$.mobile.loading('hide');
 			if (console) console.log("ajax call failed: " + textStatus + " - " + jqXHR.status + " - " + jqXHR.responseText);
 		}
@@ -50,12 +49,10 @@ Client.prototype.initPage = function() {
 	var caller = this;
 	$("div[data-role*='page']").live('pageshow', function(event, ui) {
 		if (event.target.id == "browse-page") {
-			$('#home').unbind('click');
-			$('#home').bind('click', function() {
+			$('#home').unbind('click').bind('click', function() {
 				caller.loadServers();		
 			});
-			$('#search').unbind('click');
-			$('#search').bind('click', function() {
+			$('#search').unbind('click').bind('click', function() {
 				caller.search($('#search-text').val());		
 			});
 			if (!caller.path) {
@@ -64,46 +61,27 @@ Client.prototype.initPage = function() {
 				caller.browse(caller.server, caller.server + caller.path, true);
 			}
 			$('#browse-page').live('pageshow', function(event, ui) {
-				if (!caller.statusInterval) {
-					caller.getStatus(true);
-					caller.statusInterval = window.setInterval("client.getStatus(false);", 5000);
-				}
+				caller.initStatusPoller(true);
 			});
 			$('#browse-page').live('pagehide', function(event, ui) {
-				if (caller.statusInterval) {
-					window.clearInterval(caller.statusInterval);
-					caller.statusInterval = null;
-				}
+				caller.clearStatusPoller();
 			});
-			if (!caller.statusInterval) {
-				caller.getStatus(false);
-				caller.statusInterval = window.setInterval("client.getStatus(false);", 5000);
-			}
+			caller.initStatusPoller(false);
 		} else if (event.target.id == "player-page") {
-			$('.control').unbind('click');
-			$('.control').bind('click', function() {
+			$('.control').unbind('click').bind('click', function() {
 				var command = $(this).attr('value');
 				caller.control(caller.server, null, command, "#message-player");
 			});
 			$('#player-page').live('pageshow', function(event, ui) {
-				if (!caller.statusInterval) {
-					caller.getStatus(true);
-					caller.statusInterval = window.setInterval("client.getStatus(true);", 5000);
-				}
+				caller.initStatusPoller(true);
 			});
 			$('#player-page').live('pagehide', function(event, ui) {
-				if (caller.statusInterval) {
-					window.clearInterval(caller.statusInterval);
-					caller.statusInterval = null;
-				}
+				caller.clearStatusPoller();
 			});
-			$('#clear-playlist').unbind('click');
-			$('#clear-playlist').bind('click', function() {
-				caller.control(caller.server, null, 'clear', "#message-player");
-				
+			$('#clear-playlist').unbind('click').bind('click', function() {
+				caller.control(caller.server, null, 'clear', "#message-player");				
 			});
-			$('#play-playlist').unbind('click');
-			$('#play-playlist').bind('click', function() {
+			$('#play-playlist').unbind('click').bind('click', function() {
 				var list = $('#playlist li');
 				if (!caller.running && list.length > 0) {
 					var file = list.first().attr('href');
@@ -111,27 +89,63 @@ Client.prototype.initPage = function() {
 					caller.control(caller.server, file, 'play', "#message-player");
 				}
 			});
-			if (!caller.statusInterval) {
-				caller.getStatus(true);
-				caller.statusInterval = window.setInterval("client.getStatus(true);", 5000);
-			}
+			caller.initStatusPoller(true);
 		} else if (event.target.id == "settings-page") {
-			$('#settings-submit').unbind('click');
-			$('#settings-submit').bind('click', function() {
+			$('#settings-submit').unbind('click').bind('click', function() {
 				caller.setSettings();
 			});
-			$('#settings-reset').unbind('click');
-			$('#settings-reset').bind('click', function() {
+			$('#settings-reset').unbind('click').bind('click', function() {
 				caller.getSettings();
 			});
 			$('#settings-page label').css('float', 'right').css('margin-right', '1em').css('font-weight', 'bold').css('margin-top', '1em');
 			caller.getSettings();
+		} else if (event.target.id == "large-page") {
+			$('#home').unbind('click').bind('click', function() {
+				caller.loadServers();		
+			});
+			$('#search').unbind('click').bind('click', function() {
+				caller.search($('#search-text').val());		
+			});
+			if (!caller.path) {
+				caller.loadServers();
+			} else {
+				caller.browse(caller.server, caller.server + caller.path, true);
+			}		
+			$('.control').unbind('click').bind('click', function() {
+				var command = $(this).attr('value');
+				caller.control(caller.server, null, command, "#message-player");
+			});
+			$('#clear-playlist').unbind('click').bind('click', function() {
+				caller.control(caller.server, null, 'clear', "#message-player");				
+			});
+			$('#play-playlist').unbind('click').bind('click', function() {
+				var list = $('#playlist li');
+				if (!caller.running && list.length > 0) {
+					var file = list.first().attr('href');
+					caller.control(caller.server, file, 'remove', "#message-player");
+					caller.control(caller.server, file, 'play', "#message-player");
+				}
+			});
+			caller.initStatusPoller(true);
 		}
 	});
 } 
 
 //---------------------------------------------------------------------
 
+Client.prototype.initStatusPoller = function(loadPlaylist) {
+	if (!this.statusInterval) {
+		this.getStatus(loadPlaylist);
+		this.statusInterval = window.setInterval("client.getStatus(false);", 5000);
+	}
+}
+
+Client.prototype.clearStatusPoller = function() {
+	if (this.statusInterval) {
+		window.clearInterval(this.statusInterval);
+		this.statusInterval = null;
+	}
+}
 
 Client.prototype.loadServers = function(skipHistory) {
 	var caller = this;
@@ -366,7 +380,7 @@ Client.prototype.addNavigateLinks = function(server, elem, data, skipHistory) {
 	$('#search-box').css('display', search ? 'inline' : 'none'); 
 	$.mobile.loading('hide');
 	if (!skipHistory) {
-		history.pushState( { server: server, path: path }, "X1 Media Player", "index.html");
+		history.pushState( { server: server, path: path }, "X1 Media Player", this.baseUrl);
 	}	
 }
 
@@ -400,7 +414,7 @@ Client.prototype.addNavigateServers = function(elem, data, skipHistory) {
 	$('#search-box').css('display', 'none'); 
 	$.mobile.loading('hide');
 	if (!skipHistory) {
-		history.pushState({ servers: true }, "X1 Media Player", "index.html");
+		history.pushState({ servers: true }, "X1 Media Player", this.baseUrl);
 	}	
 }
 
