@@ -29,6 +29,11 @@ Setup (this is my setup, many ways ... you know that already)
  * ensure that the directories "data" and "conf" are writable by the webserver (chmod -R 664 data conf ; chgrp -R www-data data conf)
  * the UI should work well on any modern (HTML5 ready) browser, I've tested with Chrome 22, Firefox 16 and Webkit on Android 2.2
 
+Ensure that the user which runs omxplayer has sufficient access rights, for apache httpd this is done by adding the www-data user to the video group:
+
+ * echo 'SUBSYSTEM=="vchiq",GROUP="video",MODE="0660"' > /etc/udev/rules.d/10-vchiq-permissions.rules
+ * usermod -aG video www-data
+
 Feature set:
  * on the "browse" page:
   * browse through the media servers content (folders)
