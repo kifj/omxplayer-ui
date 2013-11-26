@@ -27,6 +27,8 @@ Setup (this is my setup, many ways ... you know that already)
  * the first level of directories represents the servers, you can set up symlinks to samba or nfs mounts if you like
  * omxplayer-ui needs to be published at the webserver at /omxplayer-ui, or you edit the URL in mediaplayer.js
  * ensure that the directories "data" and "conf" are writable by the webserver (chmod -R 664 data conf ; chgrp -R www-data data conf)
+ * ensure all directories (omxplayer-ui and your media files) are accessible for the user which runs the web server
+ * make sure that PHP and mod_rewrite are enabled for the diretory which contains omxplayer-ui. AllowOverride All on the document root will do this. 
  * the UI should work well on any modern (HTML5 ready) browser, I've tested with Chrome 22, Firefox 16 and Webkit on Android 2.2
 
 Ensure that the user which runs omxplayer has sufficient access rights, for apache httpd this is done by adding the www-data user to the video group:
