@@ -12,14 +12,42 @@ Prerequisites (this is my setup, many ways lead to Rome)
  * curl
  * djmount (optional)
 
-Setup for Nginx: add this location to the site config
+Setup for Nginx: 
+ * you need these packages
+ * nginx
+ * php5-fpm
+ * add this location to the site config
 
+```
     # nginx configuration
     location /omxplayer-ui/ {
       if (!-e $request_filename) {
         rewrite ^/omxplayer-ui/(.*)$ /omxplayer-ui/index.php;
       }
     }
+```
+
+ * edit /etc/nginx/sites-available/default
+
+```
+    location ~ \.php$ {
+    # fastcgi_split_path_info ^(.+\.php)(/.+)$;
+    # # NOTE: You should have "cgi.fix_pathinfo = 0;" in php.ini
+    #
+    # # With php5-cgi alone:
+    # fastcgi_pass 127.0.0.1:9000;
+    # # With php5-fpm:
+    fastcgi_pass unix:/var/run/php5-fpm.sock;
+    fastcgi_index index.php;
+    include fastcgi_params;
+    }
+```
+
+ * in /etc/nginx/sites-available/default change root directory according to your need
+
+```
+    root /usr/share/nginx/www;
+```
 
 Setup (this is my setup, many ways ... you know that already)
  * djmount mounts the media servers to /media/upnp (in /etc/rc.local add /usr/bin/djmount -o allow_other,iocharset=UTF-8 /media/upnp > /dev/null)
