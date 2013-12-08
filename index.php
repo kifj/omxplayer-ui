@@ -43,8 +43,8 @@ function setupOptions() {
 	if (!file_exists(OMX_SETTINGS)) {
 		if ($settingsFile = fopen(OMX_SETTINGS, 'w')) {
 			$settings = array(
-				'root'=> '/media/upnp', 
-				'id3' => true, 
+				'root'=> '/media/upnp',
+				'id3' => true,
 				'passthrough' => true,
 				'audio out' => 'hdmi',
 				'deinterlacing' => false,
@@ -52,7 +52,7 @@ function setupOptions() {
 				'3d tv' => false,
 				'boost volume' => false,
 				'refresh' => false,
-				'extensions' => array('mp3', 'm3u', 'mpg', 'avi', 'mov', 'mkv', 'jpg', 'JPG', 'png', 'flv', 'MP3', 'wav', 'ogg')
+				'extensions' => array('mp3', 'm3u', 'mpg', 'avi', 'mov', 'mkv', 'jpg', 'JPG', 'png', 'flv', 'MP3', 'wav', 'ogg', 'mp4')
 			);
 			fwrite($settingsFile,json_encode($settings));
 			fclose($settingsFile);
@@ -90,7 +90,7 @@ function getOmxplayerOptions(){
 				if ($value) { $omxplayerOptions .= ' -r '; }
 				break;
 			default:
-		}    
+		}
 	}
 	return $omxplayerOptions;
 }
@@ -115,9 +115,9 @@ function getServers() {
 			}
 		}
 		closedir($handle);
-		$body['servers'] = $items; 
+		$body['servers'] = $items;
 		echo json_encode($body);
-		$response["Cache-Control"] ="max-age=600"; 
+		$response["Cache-Control"] ="max-age=600";
 	} else {
 		$response->status(404);
 	}
@@ -137,10 +137,10 @@ function getPlaylist() {
 		$item["link"] = $file;
 		$items[] = $item;
 	}
-	$body['playlist'] = $items; 
+	$body['playlist'] = $items;
 	echo json_encode($body);
 	$response = $app->response();
-	$response["Cache-Control"] ="max-age=0"; 
+	$response["Cache-Control"] ="max-age=0";
 }
 
 function getSettings() {
@@ -149,7 +149,7 @@ function getSettings() {
 	global $settings;
 	echo json_encode($settings);
 	$response = $app->response();
-	$response["Cache-Control"] ="max-age=0"; 
+	$response["Cache-Control"] ="max-age=0";
 }
 
 function setSettings() {
@@ -174,10 +174,10 @@ function getServer($id) {
 	$response = $app->response();
 	$server = $id[0];
 	$path = implode("/",array_slice($id, 1));
-	if (!$path) { 
-		$path = "/"; 
-	} else { 
-		$path = "/" . $path; 
+	if (!$path) {
+		$path = "/";
+	} else {
+		$path = "/" . $path;
 	}
 	$id = implode("/", $id);
 	$root_dir = getOption('root') . '/' . $id;
@@ -214,7 +214,7 @@ function getServer($id) {
 		closedir($handle);
 		echo "\n  ],";
 		echo "\n  \"search\": " . boolString($has_search);
-		$response["Cache-Control"] ="max-age=600"; 
+		$response["Cache-Control"] ="max-age=600";
 	} else {
 		$response->status(404);
 	}
@@ -243,7 +243,7 @@ function controlFile($id) {
 			case "play":
 				$result = play($file);
 				break;
-			case "add":				
+			case "add":
 				$result = addFile($file);
 				break;
 			case "remove":
@@ -352,7 +352,7 @@ function controlPlayer() {
 			if (writePlaylist(array()) === false) {
 				$result = "error";
 			} else {
-				$result = "ok"; 
+				$result = "ok";
 			}
 			break;
 		default:
@@ -400,7 +400,7 @@ function play($file) {
 	$extension = $info['extension'];
 	$title =  basename($file, '.' . $extension);
 	if (in_array($extension, $picture_extensions)) {
-		//shell_exec ('cp ' . escapeshellarg($file) . ' /tmp/fim_current');		
+		//shell_exec ('cp ' . escapeshellarg($file) . ' /tmp/fim_current');
 		$out = 'Not implemented';
 	} else {
 		exec('pgrep omxplayer.bin', $pids);
@@ -476,7 +476,7 @@ function getCurrent() {
 
 function setCurrent($file) {
 	$root_dir = getOption('root');
-	return file_put_contents(PLAYLIST_CURRENT, str_replace($root_dir . "/", "", $file));	
+	return file_put_contents(PLAYLIST_CURRENT, str_replace($root_dir . "/", "", $file));
 }
 
 function writePlaylist($playlist) {
@@ -484,22 +484,22 @@ function writePlaylist($playlist) {
 }
 
 function getWatchdog() {
-	$watchdog = file_get_contents(OMX_WATCHDOG);	
+	$watchdog = file_get_contents(OMX_WATCHDOG);
 	if (!$watchdog) $watchdog = 'STOPPED';
 	return $watchdog;
 }
 
 function setWatchdog($status) {
-	return file_put_contents(OMX_WATCHDOG, $status);	
+	return file_put_contents(OMX_WATCHDOG, $status);
 }
 
 function addFile($file) {
 	$playlist = readPlaylist();
-	array_push($playlist, $file . "\n"); 
+	array_push($playlist, $file . "\n");
 	if (writePlaylist($playlist) === false) {
 		return "error";
 	} else {
-		return "ok"; 
+		return "ok";
 	}
 }
 
@@ -510,7 +510,7 @@ function removeFile($file) {
 	if (writePlaylist($playlist) === false) {
 		return "error";
 	} else {
-		return "ok"; 
+		return "ok";
 	}
 }
 
@@ -519,7 +519,7 @@ function addFolder($folder) {
 	if ($handle = opendir($folder)) {
 		while (false !== ($file = readdir($handle))) {
 			if (!startsWith($file, '.')  && is_file("$folder/$file")) {
-				array_push($playlist, "$folder/$file\n"); 
+				array_push($playlist, "$folder/$file\n");
 			}
 		}
 		closedir($handle);
@@ -529,7 +529,7 @@ function addFolder($folder) {
 	if (writePlaylist($playlist) === false) {
 		return "error";
 	} else {
-		return "ok"; 
+		return "ok";
 	}
 }
 
@@ -544,8 +544,8 @@ function playFolder($folder) {
 			if (!startsWith($file, '.')  && is_file("$folder/$file")) {
 				if ($play_file == null) {
 					$play_file = "$folder/$file";
-				} 
-				array_push($playlist, "$folder/$file\n"); 
+				}
+				array_push($playlist, "$folder/$file\n");
 			}
 		}
 		closedir($handle);
@@ -558,7 +558,7 @@ function playFolder($folder) {
 		if ($play_file != null) {
 			return play($play_file);
 		}
-		return "ok"; 
+		return "ok";
 	}
 }
 
@@ -578,7 +578,7 @@ function removeFolder($folder) {
 	if (writePlaylist($playlist) === false) {
 		return "error";
 	} else {
-		return "ok"; 
+		return "ok";
 	}
 }
 
@@ -620,7 +620,7 @@ function search($server, $path) {
 	echo "\n  \"search\": false";
 	echo "\n}\n";
 	$response = $app->response();
-	$response["Cache-Control"] ="max-age=600"; 
+	$response["Cache-Control"] ="max-age=600";
 }
 
 function getStatus() {
@@ -680,7 +680,7 @@ function getStatus() {
 	}
 	echo json_encode($body);
 	$response = $app->response();
-	$response["Cache-Control"] ="max-age=5"; 
+	$response["Cache-Control"] ="max-age=5";
 }
 
 function watchdog() {
@@ -729,7 +729,7 @@ function watchdog() {
 	$body['watchdog'] = $newWatchdog;
 	echo json_encode($body);
 	$response = $app->response();
-	$response["Cache-Control"] ="max-age=5"; 	
+	$response["Cache-Control"] ="max-age=5";
 	$log->info("-> watchdog, status " . $newWatchdog);
 	/*
 	//polling takes too much CPU time
@@ -743,8 +743,8 @@ function watchdog() {
 function wakeWatchdog($url) {
     $parts=parse_url($url);
 
-    $fp = fsockopen($parts['host'], 
-        isset($parts['port'])?$parts['port']:80, 
+    $fp = fsockopen($parts['host'],
+        isset($parts['port'])?$parts['port']:80,
         $errno, $errstr, 30);
 
     if ($fp == 0 ) {
