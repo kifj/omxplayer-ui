@@ -18,6 +18,7 @@ $settings = setupOptions();
 
 require_once 'Slim/Slim.php';
 require_once 'audioinfo.php';
+require_once 'getid3/getid3.lib.php';
 \Slim\Slim::registerAutoloader();
 
 $app = new \Slim\Slim();
@@ -674,6 +675,12 @@ function getStatus() {
 				$body['resolution'] = $audioinfo['video']['resolution_x'] . "x" . $audioinfo['video']['resolution_y'];
 			}
 		}
+		
+		$now = new DateTime();
+		$positionSeconds = $now->getTimestamp() - filemtime (PLAYLIST_CURRENT);
+		$body['position'] = getid3_lib::PlaytimeString($positionSeconds);
+
+
 		$file = str_replace($root_dir . "/", "", $playing);
 		$body['file'] = end(explode("/", $playing));
 		$body['link'] = $file;

@@ -214,6 +214,7 @@ Client.prototype.getStatus = function(loadPlaylist) {
 			if (data["artist"]) $('#playing').append("<b>Artist:</b> " + data["artist"] + "<br/>");
 			if (data["title"]) $('#playing').append("<b>Title:</b> " + data["title"] + "<br/>");
 			if (data["playtime"]) $('#playing').append("<b>Length:</b> " + data["playtime"] + "<br/>");
+			if (data["position"]) $('#playing').append("<b>Position:</b> " + data["position"] + "<br/>");	
 			if (data["album"]) $('#playing').append("<b>Album:</b> " + data["album"] + "<br/>");
 			if (data["track"]) $('#playing').append("<b>Track:</b> " + data["track"] + "<br/>");
 			if (data["genre"]) $('#playing').append("<b>Genre:</b> " + data["genre"] + "<br/>");
