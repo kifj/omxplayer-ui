@@ -675,10 +675,10 @@ function getStatus() {
 				$body['resolution'] = $audioinfo['video']['resolution_x'] . "x" . $audioinfo['video']['resolution_y'];
 			}
 		}
-		
-		$now = new DateTime();
-		$positionSeconds = $now->getTimestamp() - filemtime (PLAYLIST_CURRENT);
-		$body['position'] = getid3_lib::PlaytimeString($positionSeconds);
+	
+		$position = shell_exec('./etc/get_position.sh');
+	
+		$body['position'] =  getid3_lib::PlaytimeString(round ($position / 1000000));
 
 
 		$file = str_replace($root_dir . "/", "", $playing);
