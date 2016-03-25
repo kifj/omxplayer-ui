@@ -2,6 +2,9 @@
 
 #set -x
 
+# pulled from https://raw.githubusercontent.com/popcornmix/omxplayer/master/dbuscontrol.sh
+
+
 OMXPLAYER_DBUS_ADDR="/tmp/omxplayerdbus.${USER}"
 OMXPLAYER_DBUS_PID="/tmp/omxplayerdbus.${USER}.pid"
 export DBUS_SESSION_BUS_ADDRESS=`cat $OMXPLAYER_DBUS_ADDR`
