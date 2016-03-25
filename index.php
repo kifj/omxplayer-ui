@@ -677,8 +677,10 @@ function getStatus() {
 		}
 	
 		$position = shell_exec('./etc/get_position.sh');
-	
 		$body['position'] =  getid3_lib::PlaytimeString(round ($position / 1000000));
+
+		$playerstatus = shell_exec('./etc/get_status.sh');
+		$body['status'] = trim($playerstatus);
 
 
 		$file = str_replace($root_dir . "/", "", $playing);
